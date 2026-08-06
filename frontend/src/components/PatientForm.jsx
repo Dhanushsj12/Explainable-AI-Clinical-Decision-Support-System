@@ -7,6 +7,10 @@ import PatientSummary from "./PatientSummary";
 function PatientForm() {
 
     const [formData, setFormData] = useState({
+        patient_id: "",
+        patient_name: "",
+        doctor_name: "",
+        hospital_name: "",
         age: "",
         sex: "1",
         cp: "1",
@@ -26,6 +30,30 @@ function PatientForm() {
     const [loading, setLoading] = useState(false);
 
     const fields = [
+
+        {
+            name: "patient_id",
+            label: "Patient ID",
+            type: "text"
+        },
+
+        {
+            name: "patient_name",
+            label: "Patient Name",
+            type: "text"
+        },
+
+        {
+            name: "doctor_name",
+            label: "Doctor Name",
+            type: "text"
+        },
+
+        {
+            name: "hospital_name",
+            label: "Hospital Name",
+            type: "text"
+        },
 
         {
             name: "age",
@@ -175,10 +203,26 @@ function PatientForm() {
 
         try {
 
-            const response = await API.post("/predict", {
-                features
-            });
+           const requestData = {
 
+    features,
+
+    patient_id: formData.patient_id,
+
+    patient_name: formData.patient_name,
+
+    doctor_name: formData.doctor_name,
+
+    hospital_name: formData.hospital_name
+
+};
+
+console.log("Sending to backend:", requestData);
+
+const response = await API.post(
+    "/predict",
+    requestData
+);
             setResult(response.data);
 
         }
@@ -212,6 +256,10 @@ function PatientForm() {
 
         setFormData({
 
+            patient_id: "",
+            patient_name: "",
+            doctor_name: "",
+            hospital_name: "",
             age: "",
             sex: "1",
             cp: "1",
@@ -231,7 +279,77 @@ function PatientForm() {
         setResult(null);
 
     };
-        return (
+
+    const downloadReport = async () => {
+
+        const features = [
+
+            Number(formData.age),
+            Number(formData.sex),
+            Number(formData.cp),
+            Number(formData.trestbps),
+            Number(formData.chol),
+            Number(formData.fbs),
+            Number(formData.restecg),
+            Number(formData.thalach),
+            Number(formData.exang),
+            Number(formData.oldpeak),
+            Number(formData.slope),
+            Number(formData.ca),
+            Number(formData.thal)
+
+        ];
+
+        try {
+
+            const response = await API.post(
+
+                "/report",
+
+                {
+                    features,
+                    patient_id: formData.patient_id,
+                    patient_name: formData.patient_name,
+                    doctor_name: formData.doctor_name,
+                    hospital_name: formData.hospital_name
+                },
+
+                {
+                    responseType: "blob"
+                }
+
+            );
+
+            const url = window.URL.createObjectURL(
+                new Blob([response.data])
+            );
+
+            const link = document.createElement("a");
+
+            link.href = url;
+
+            link.download = "Clinical_Report.pdf";
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            link.remove();
+
+            window.URL.revokeObjectURL(url);
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            alert("Unable to download report.");
+
+        }
+
+    };
+
+    return (
 
         <div className="container mt-5 mb-5">
 
@@ -299,14 +417,14 @@ function PatientForm() {
                                     ) : (
 
                                         <input
-                                            type="number"
+                                            type={field.type || "number"}
                                             className="form-control"
                                             name={field.name}
                                             value={formData[field.name]}
                                             onChange={handleChange}
                                             placeholder={`Enter ${field.label}`}
-                                            min="0"
-                                            step="any"
+                                            min={field.type === "text" ? undefined : "0"}
+                                            step={field.type === "text" ? undefined : "any"}
                                             required
                                         />
 
@@ -366,22 +484,38 @@ function PatientForm() {
 
             </div>
 
-            {result && (
+          {result && (
 
-                <PatientSummary
-                    formData={formData}
-                />
+    <>
 
-            )}
+        <PatientSummary
+            formData={formData}
+        />
 
-            <PredictionCard
-                result={result}
-            />
+        <div className="text-center mt-4 mb-4">
 
-            <FeatureImportance
-                features={result?.top_features}
-            />
+            <button
+                className="btn btn-success btn-lg"
+                onClick={downloadReport}
+            >
 
+                📄 Download Clinical Report
+
+            </button>
+
+        </div>
+
+    </>
+
+)}
+
+<PredictionCard
+    result={result}
+/>
+
+<FeatureImportance
+    features={result?.top_features}
+/>
         </div>
 
     );

@@ -1,35 +1,272 @@
-from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle
+)
+
+from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
-import os
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.units import inch
+
+from datetime import datetime
 
 styles = getSampleStyleSheet()
 
+# ---------------------------------------
+# Custom Styles
+# ---------------------------------------
 
-def generate_report(result, output_path):
+title_style = styles["Heading1"]
+title_style.alignment = TA_CENTER
+
+heading_style = styles["Heading2"]
+
+normal_style = styles["BodyText"]
+
+
+# ---------------------------------------
+# PDF Generator
+# ---------------------------------------
+
+def generate_report(patient, result, output_path):
 
     document = SimpleDocTemplate(output_path)
 
     story = []
 
-    story.append(Paragraph("<b>Clinical Decision Support Report</b>", styles["Heading1"]))
+    # =====================================
+    # Title
+    # =====================================
 
-    story.append(Paragraph(f"<b>Prediction:</b> {result['prediction']}", styles["BodyText"]))
+    story.append(
+        Paragraph(
+            "Explainable AI Clinical Decision Support System",
+            title_style
+        )
+    )
 
-    story.append(Paragraph(f"<b>Probability:</b> {result['probability']}%", styles["BodyText"]))
+    story.append(
+        Paragraph(
+            "Clinical Prediction Report",
+            heading_style
+        )
+    )
 
-    story.append(Paragraph(f"<b>Risk Level:</b> {result['risk_level']}", styles["BodyText"]))
+    story.append(Spacer(1, 0.3 * inch))
 
-    story.append(Paragraph(f"<b>Recommendation:</b> {result['recommendation']}", styles["BodyText"]))
+    # =====================================
+    # Date
+    # =====================================
 
-    story.append(Paragraph("<b>Top Features</b>", styles["Heading2"]))
+    story.append(
+        Paragraph(
+            f"<b>Generated On:</b> {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}",
+            normal_style
+        )
+    )
+
+    story.append(Spacer(1, 0.25 * inch))
+
+    # =====================================
+    # Patient Information
+    # =====================================
+
+    story.append(
+        Paragraph(
+            "Patient Information",
+            heading_style
+        )
+    )
+
+    patient_table = Table([
+
+        ["Patient ID", patient["patient_id"]],
+        ["Patient Name", patient["patient_name"]],
+        ["Doctor", patient["doctor_name"]],
+        ["Hospital", patient["hospital_name"]],
+
+        ["Age", patient["age"]],
+        ["Gender", patient["gender"]],
+        ["Chest Pain Type", patient["cp"]],
+        ["Resting Blood Pressure", f"{patient['trestbps']} mmHg"],
+        ["Cholesterol", f"{patient['chol']} mg/dL"],
+        ["Fasting Blood Sugar", patient["fbs"]],
+        ["Rest ECG", patient["restecg"]],
+        ["Maximum Heart Rate", patient["thalach"]],
+        ["Exercise Angina", patient["exang"]],
+        ["ST Depression", patient["oldpeak"]],
+        ["ST Segment Slope", patient["slope"]],
+        ["Major Vessels", patient["ca"]],
+        ["Thalassemia", patient["thal"]]
+
+    ])
+
+    patient_table.setStyle(TableStyle([
+
+        ("GRID", (0,0), (-1,-1), 1, colors.grey),
+
+        ("BACKGROUND", (0,0), (0,-1), colors.lightblue),
+
+        ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+
+        ("BOTTOMPADDING", (0,0), (-1,-1), 8)
+
+    ]))
+
+    story.append(patient_table)
+
+    story.append(Spacer(1, 0.3 * inch))
+
+    # =====================================
+    # Prediction
+    # =====================================
+
+    story.append(
+        Paragraph(
+            "Prediction Result",
+            heading_style
+        )
+    )
+
+    prediction_table = Table([
+
+        ["Prediction", result["prediction"]],
+
+        ["Probability", f"{result['probability']} %"],
+
+        ["Risk Level", result["risk_level"]]
+
+    ])
+
+    prediction_table.setStyle(TableStyle([
+
+        ("GRID",(0,0),(-1,-1),1,colors.grey),
+
+        ("BACKGROUND",(0,0),(0,-1),colors.lightgreen),
+
+        ("BOTTOMPADDING",(0,0),(-1,-1),8)
+
+    ]))
+
+    story.append(prediction_table)
+
+    story.append(Spacer(1,0.3*inch))
+
+    # =====================================
+    # Recommendation
+    # =====================================
+
+    story.append(
+        Paragraph(
+            "Clinical Recommendation",
+            heading_style
+        )
+    )
+
+    story.append(
+        Paragraph(
+            result["recommendation"],
+            normal_style
+        )
+    )
+
+    story.append(Spacer(1,0.3*inch))
+
+    # =====================================
+    # SHAP Features
+    # =====================================
+
+    story.append(
+        Paragraph(
+            "Top Influencing Features (SHAP)",
+            heading_style
+        )
+    )
+
+    feature_data = [["Feature", "Impact"]]
 
     for feature in result["top_features"]:
-        story.append(
-            Paragraph(
-                f"{feature['feature']} : {feature['impact']}",
-                styles["BodyText"]
-            )
+
+        feature_data.append([
+
+            feature["feature"],
+
+            str(round(feature["impact"],4))
+
+        ])
+
+    feature_table = Table(feature_data)
+
+    feature_table.setStyle(TableStyle([
+
+        ("GRID",(0,0),(-1,-1),1,colors.black),
+
+        ("BACKGROUND",(0,0),(-1,0),colors.darkblue),
+
+        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+
+        ("BACKGROUND",(0,1),(-1,-1),colors.beige),
+
+        ("BOTTOMPADDING",(0,0),(-1,-1),8)
+
+    ]))
+
+    story.append(feature_table)
+
+    story.append(Spacer(1,0.4*inch))
+
+    # =====================================
+    # Footer
+    # =====================================
+
+    story.append(
+
+        Paragraph(
+
+            "<b>Generated by Explainable AI Clinical Decision Support System</b>",
+
+            normal_style
+
         )
+
+    )
+
+    story.append(
+
+        Paragraph(
+
+            "Machine Learning • SHAP • Flask • React",
+
+            normal_style
+
+        )
+
+    )
+
+    # =====================================
+    # Signatures
+    # =====================================
+
+    story.append(Spacer(1, 0.4 * inch))
+
+    story.append(
+        Paragraph(
+            "<b>Doctor Signature:</b> ____________________",
+            normal_style
+        )
+    )
+
+    story.append(Spacer(1, 0.2 * inch))
+
+    story.append(
+        Paragraph(
+            "<b>Patient Signature:</b> ____________________",
+            normal_style
+        )
+    )
 
     document.build(story)
 

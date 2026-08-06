@@ -18,6 +18,18 @@ function PatientSummary({ formData }) {
 
             <div className="card-body">
 
+                <h5 className="mb-3">Patient Details</h5>
+
+                <p><b>Patient ID:</b> {formData.patient_id}</p>
+
+                <p><b>Patient Name:</b> {formData.patient_name}</p>
+
+                <p><b>Doctor:</b> {formData.doctor_name}</p>
+
+                <p><b>Hospital:</b> {formData.hospital_name}</p>
+
+                <hr />
+
                 <table className="table">
 
                     <tbody>
