@@ -217,6 +217,64 @@ def generate_report(patient, result, output_path):
     story.append(feature_table)
 
     story.append(Spacer(1,0.4*inch))
+        # =====================================
+    # LIME Explanation
+    # =====================================
+
+    story.append(
+        Paragraph(
+            "LIME Explanation",
+            heading_style
+        )
+    )
+
+    lime_data = [["Feature", "Impact"]]
+
+    if "lime_features" in result:
+
+        for feature in result["lime_features"]:
+
+            lime_data.append([
+
+                feature["feature"],
+
+                str(round(feature["impact"], 4))
+
+            ])
+
+        lime_table = Table(lime_data)
+
+        lime_table.setStyle(TableStyle([
+
+            ("GRID", (0,0), (-1,-1), 1, colors.black),
+
+            ("BACKGROUND", (0,0), (-1,0), colors.orange),
+
+            ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+
+            ("BACKGROUND", (0,1), (-1,-1), colors.beige),
+
+            ("BOTTOMPADDING", (0,0), (-1,-1), 8)
+
+        ]))
+
+        story.append(lime_table)
+
+    else:
+
+        story.append(
+
+            Paragraph(
+
+                "LIME explanation is not available for this prediction.",
+
+                normal_style
+
+            )
+
+        )
+
+    story.append(Spacer(1, 0.4 * inch))
 
     # =====================================
     # Footer
@@ -238,7 +296,7 @@ def generate_report(patient, result, output_path):
 
         Paragraph(
 
-            "Machine Learning • SHAP • Flask • React",
+            "Machine Learning • SHAP • LIME • Flask • React",
 
             normal_style
 
@@ -253,19 +311,29 @@ def generate_report(patient, result, output_path):
     story.append(Spacer(1, 0.4 * inch))
 
     story.append(
+
         Paragraph(
-            "<b>Doctor Signature:</b> ____________________",
+
+            "<b>Doctor Signature:</b> __________________________",
+
             normal_style
+
         )
+
     )
 
     story.append(Spacer(1, 0.2 * inch))
 
     story.append(
+
         Paragraph(
-            "<b>Patient Signature:</b> ____________________",
+
+            "<b>Patient Signature:</b> __________________________",
+
             normal_style
+
         )
+
     )
 
     document.build(story)

@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from prediction import predict
 from explainability import explain
+from lime_explain import lime_explain
 from recommendation import recommendation
 from report_generator import generate_report
 from database import create_table, save_prediction, get_predictions
@@ -95,7 +96,11 @@ def prediction():
 
     result = predict(features)
 
+# SHAP Explanation
     explanation = explain(features)
+
+# LIME Explanation
+    lime = lime_explain(features)
 
     advice = recommendation(
         result["prediction_class"],
@@ -107,6 +112,7 @@ def prediction():
     result["recommendation"] = advice["recommendation"]
 
     result["top_features"] = explanation
+    result["lime_features"] = lime
     patient = build_patient_data(data, features)
 
     save_prediction(
@@ -139,8 +145,12 @@ def report():
     # Explainability
     # -----------------------------
 
+    
+    # SHAP
     explanation = explain(features)
 
+# LIME
+    lime = lime_explain(features)
     # -----------------------------
     # Recommendation
     # -----------------------------
@@ -155,6 +165,7 @@ def report():
     result["recommendation"] = advice["recommendation"]
 
     result["top_features"] = explanation
+    result["lime_features"] = lime
 
     # -----------------------------
     # Build Patient Details

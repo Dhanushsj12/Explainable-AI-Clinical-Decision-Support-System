@@ -512,9 +512,9 @@ const response = await API.post(
 <PredictionCard
     result={result}
 />
-
 <FeatureImportance
     features={result?.top_features}
+    limeFeatures={result?.lime_features}
 />
         </div>
 
