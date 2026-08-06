@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_file
-
+from flask_cors import CORS
 from prediction import predict
 from explainability import explain
 from recommendation import recommendation
@@ -9,7 +9,7 @@ import os
 
 app = Flask(__name__)
 
-
+CORS(app)
 @app.route("/")
 def home():
 
