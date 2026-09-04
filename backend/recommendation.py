@@ -63,6 +63,37 @@ def recommendation(prediction, probability, disease="heart"):
 
 
     # ==========================================
+    # Chronic Kidney Disease
+    # ==========================================
+
+    elif disease == "ckd":
+
+        if prediction == 0:
+
+            return {
+                "risk": "Low",
+                "recommendation":
+                "No significant indication of chronic kidney disease was detected. Maintain adequate hydration, follow a balanced diet, control blood pressure and blood sugar, and continue routine health check-ups."
+            }
+
+        elif probability < 70:
+
+            return {
+                "risk": "Moderate",
+                "recommendation":
+                "The prediction indicates some signs associated with chronic kidney disease. Consultation with a healthcare professional and further kidney function evaluation are recommended."
+            }
+
+        else:
+
+            return {
+                "risk": "High",
+                "recommendation":
+                "High likelihood of chronic kidney disease. Consultation with a nephrologist or healthcare professional is strongly recommended for further clinical evaluation and appropriate kidney function tests."
+            }
+
+
+    # ==========================================
     # Unsupported Disease
     # ==========================================
 

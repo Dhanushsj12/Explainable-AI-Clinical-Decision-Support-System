@@ -14,7 +14,9 @@ function PatientForm() {
         doctor_name: "",
         hospital_name: "",
 
+        // =========================
         // Heart Disease
+        // =========================
         age: "",
         sex: "1",
         cp: "1",
@@ -29,7 +31,9 @@ function PatientForm() {
         ca: "0",
         thal: "3",
 
+        // =========================
         // Diabetes
+        // =========================
         gender: "1",
         polyuria: "0",
         polydipsia: "0",
@@ -44,15 +48,43 @@ function PatientForm() {
         partial_paresis: "0",
         muscle_stiffness: "0",
         alopecia: "0",
-        obesity: "0"
+        obesity: "0",
+
+        // =========================
+        // CKD
+        // =========================
+        bp: "",
+        sg: "",
+        al: "0",
+        su: "0",
+        rbc: "0",
+        pc: "0",
+        pcc: "0",
+        ba: "0",
+        bgr: "",
+        bu: "",
+        sc: "",
+        sod: "",
+        pot: "",
+        hemo: "",
+        pcv: "",
+        wbcc: "",
+        rbcc: "",
+        htn: "0",
+        dm: "0",
+        cad: "0",
+        appet: "0",
+        pe: "0",
+        ane: "0"
     });
 
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // -----------------------------
+
+    // ==========================================
     // HEART DISEASE FIELDS
-    // -----------------------------
+    // ==========================================
 
     const heartFields = [
 
@@ -167,9 +199,10 @@ function PatientForm() {
 
     ];
 
-    // -----------------------------
+
+    // ==========================================
     // DIABETES FIELDS
-    // -----------------------------
+    // ==========================================
 
     const diabetesFields = [
 
@@ -238,8 +271,7 @@ function PatientForm() {
             label: "Genital Thrush",
             options: [
                 { value: "1", label: "Yes" },
-                { value: "0", label: "No"
-                }
+                { value: "0", label: "No" }
             ]
         },
 
@@ -317,18 +349,224 @@ function PatientForm() {
 
     ];
 
-    // -----------------------------
+
+    // ==========================================
+    // CKD FIELDS
+    // ==========================================
+
+    const ckdFields = [
+
+        {
+            name: "age",
+            label: "Age",
+            type: "number"
+        },
+
+        {
+            name: "bp",
+            label: "Blood Pressure",
+            type: "number"
+        },
+
+        {
+            name: "sg",
+            label: "Specific Gravity",
+            type: "number",
+            step: "0.001"
+        },
+
+        {
+            name: "al",
+            label: "Albumin",
+            options: [
+                { value: "0", label: "0" },
+                { value: "1", label: "1" },
+                { value: "2", label: "2" },
+                { value: "3", label: "3" },
+                { value: "4", label: "4" },
+                { value: "5", label: "5" }
+            ]
+        },
+
+        {
+            name: "su",
+            label: "Sugar",
+            options: [
+                { value: "0", label: "0" },
+                { value: "1", label: "1" },
+                { value: "2", label: "2" },
+                { value: "3", label: "3" },
+                { value: "4", label: "4" },
+                { value: "5", label: "5" }
+            ]
+        },
+
+        {
+            name: "rbc",
+            label: "Red Blood Cells",
+            options: [
+                { value: "0", label: "Normal" },
+                { value: "1", label: "Abnormal" }
+            ]
+        },
+
+        {
+            name: "pc",
+            label: "Pus Cell",
+            options: [
+                { value: "0", label: "Normal" },
+                { value: "1", label: "Abnormal" }
+            ]
+        },
+
+        {
+            name: "pcc",
+            label: "Pus Cell Clumps",
+            options: [
+                { value: "0", label: "Not Present" },
+                { value: "1", label: "Present" }
+            ]
+        },
+
+        {
+            name: "ba",
+            label: "Bacteria",
+            options: [
+                { value: "0", label: "Not Present" },
+                { value: "1", label: "Present" }
+            ]
+        },
+
+        {
+            name: "bgr",
+            label: "Blood Glucose Random",
+            type: "number"
+        },
+
+        {
+            name: "bu",
+            label: "Blood Urea",
+            type: "number"
+        },
+
+        {
+            name: "sc",
+            label: "Serum Creatinine",
+            type: "number",
+            step: "0.1"
+        },
+
+        {
+            name: "sod",
+            label: "Sodium",
+            type: "number"
+        },
+
+        {
+            name: "pot",
+            label: "Potassium",
+            type: "number",
+            step: "0.1"
+        },
+
+        {
+            name: "hemo",
+            label: "Hemoglobin",
+            type: "number",
+            step: "0.1"
+        },
+
+        {
+            name: "pcv",
+            label: "Packed Cell Volume",
+            type: "number"
+        },
+
+        {
+            name: "wbcc",
+            label: "White Blood Cell Count",
+            type: "number"
+        },
+
+        {
+            name: "rbcc",
+            label: "Red Blood Cell Count",
+            type: "number",
+            step: "0.1"
+        },
+
+        {
+            name: "htn",
+            label: "Hypertension",
+            options: [
+                { value: "1", label: "Yes" },
+                { value: "0", label: "No" }
+            ]
+        },
+
+        {
+            name: "dm",
+            label: "Diabetes Mellitus",
+            options: [
+                { value: "1", label: "Yes" },
+                { value: "0", label: "No" }
+            ]
+        },
+
+        {
+            name: "cad",
+            label: "Coronary Artery Disease",
+            options: [
+                { value: "1", label: "Yes" },
+                { value: "0", label: "No" }
+            ]
+        },
+
+        {
+            name: "appet",
+            label: "Appetite",
+            options: [
+                { value: "0", label: "Good" },
+                { value: "1", label: "Poor" }
+            ]
+        },
+
+        {
+            name: "pe",
+            label: "Pedal Edema",
+            options: [
+                { value: "1", label: "Yes" },
+                { value: "0", label: "No" }
+            ]
+        },
+
+        {
+            name: "ane",
+            label: "Anemia",
+            options: [
+                { value: "1", label: "Yes" },
+                { value: "0", label: "No" }
+            ]
+        }
+
+    ];
+
+
+    // ==========================================
     // CURRENT FIELDS
-    // -----------------------------
+    // ==========================================
 
     const fields =
         disease === "heart"
             ? heartFields
-            : diabetesFields;
+            : disease === "diabetes"
+                ? diabetesFields
+                : ckdFields;
 
-    // -----------------------------
+
+    // ==========================================
     // HANDLE CHANGE
-    // -----------------------------
+    // ==========================================
 
     const handleChange = (e) => {
 
@@ -339,9 +577,10 @@ function PatientForm() {
 
     };
 
-    // -----------------------------
+
+    // ==========================================
     // DISEASE CHANGE
-    // -----------------------------
+    // ==========================================
 
     const handleDiseaseChange = (e) => {
 
@@ -351,22 +590,16 @@ function PatientForm() {
 
     };
 
-    // -----------------------------
-    // SUBMIT
-    // -----------------------------
 
-    const handleSubmit = async (e) => {
+    // ==========================================
+    // BUILD FEATURES
+    // ==========================================
 
-        e.preventDefault();
-
-        setResult(null);
-        setLoading(true);
-
-        let features;
+    const buildFeatures = () => {
 
         if (disease === "heart") {
 
-            features = [
+            return [
 
                 Number(formData.age),
                 Number(formData.sex),
@@ -384,9 +617,11 @@ function PatientForm() {
 
             ];
 
-        } else {
+        }
 
-            features = [
+        if (disease === "diabetes") {
+
+            return [
 
                 Number(formData.age),
                 Number(formData.gender),
@@ -408,6 +643,52 @@ function PatientForm() {
             ];
 
         }
+
+        // CKD - 24 features
+        return [
+
+            Number(formData.age),
+            Number(formData.bp),
+            Number(formData.sg),
+            Number(formData.al),
+            Number(formData.su),
+            Number(formData.rbc),
+            Number(formData.pc),
+            Number(formData.pcc),
+            Number(formData.ba),
+            Number(formData.bgr),
+            Number(formData.bu),
+            Number(formData.sc),
+            Number(formData.sod),
+            Number(formData.pot),
+            Number(formData.hemo),
+            Number(formData.pcv),
+            Number(formData.wbcc),
+            Number(formData.rbcc),
+            Number(formData.htn),
+            Number(formData.dm),
+            Number(formData.cad),
+            Number(formData.appet),
+            Number(formData.pe),
+            Number(formData.ane)
+
+        ];
+
+    };
+
+
+    // ==========================================
+    // SUBMIT
+    // ==========================================
+
+    const handleSubmit = async (e) => {
+
+        e.preventDefault();
+
+        setResult(null);
+        setLoading(true);
+
+        const features = buildFeatures();
 
         try {
 
@@ -469,9 +750,10 @@ function PatientForm() {
 
     };
 
-    // -----------------------------
+
+    // ==========================================
     // RESET
-    // -----------------------------
+    // ==========================================
 
     const clearForm = () => {
 
@@ -482,6 +764,7 @@ function PatientForm() {
             doctor_name: "",
             hospital_name: "",
 
+            // Heart
             age: "",
             sex: "1",
             cp: "1",
@@ -496,6 +779,7 @@ function PatientForm() {
             ca: "0",
             thal: "3",
 
+            // Diabetes
             gender: "1",
             polyuria: "0",
             polydipsia: "0",
@@ -510,7 +794,32 @@ function PatientForm() {
             partial_paresis: "0",
             muscle_stiffness: "0",
             alopecia: "0",
-            obesity: "0"
+            obesity: "0",
+
+            // CKD
+            bp: "",
+            sg: "",
+            al: "0",
+            su: "0",
+            rbc: "0",
+            pc: "0",
+            pcc: "0",
+            ba: "0",
+            bgr: "",
+            bu: "",
+            sc: "",
+            sod: "",
+            pot: "",
+            hemo: "",
+            pcv: "",
+            wbcc: "",
+            rbcc: "",
+            htn: "0",
+            dm: "0",
+            cad: "0",
+            appet: "0",
+            pe: "0",
+            ane: "0"
 
         });
 
@@ -518,58 +827,14 @@ function PatientForm() {
 
     };
 
-    // -----------------------------
+
+    // ==========================================
     // DOWNLOAD REPORT
-    // -----------------------------
+    // ==========================================
 
     const downloadReport = async () => {
 
-        let features;
-
-        if (disease === "heart") {
-
-            features = [
-
-                Number(formData.age),
-                Number(formData.sex),
-                Number(formData.cp),
-                Number(formData.trestbps),
-                Number(formData.chol),
-                Number(formData.fbs),
-                Number(formData.restecg),
-                Number(formData.thalach),
-                Number(formData.exang),
-                Number(formData.oldpeak),
-                Number(formData.slope),
-                Number(formData.ca),
-                Number(formData.thal)
-
-            ];
-
-        } else {
-
-            features = [
-
-                Number(formData.age),
-                Number(formData.gender),
-                Number(formData.polyuria),
-                Number(formData.polydipsia),
-                Number(formData.sudden_weight_loss),
-                Number(formData.weakness),
-                Number(formData.polyphagia),
-                Number(formData.genital_thrush),
-                Number(formData.visual_blurring),
-                Number(formData.itching),
-                Number(formData.irritability),
-                Number(formData.delayed_healing),
-                Number(formData.partial_paresis),
-                Number(formData.muscle_stiffness),
-                Number(formData.alopecia),
-                Number(formData.obesity)
-
-            ];
-
-        }
+        const features = buildFeatures();
 
         try {
 
@@ -636,6 +901,19 @@ function PatientForm() {
 
     };
 
+
+    // ==========================================
+    // DISPLAY LABEL
+    // ==========================================
+
+    const diseaseName =
+        disease === "heart"
+            ? "Heart Disease"
+            : disease === "diabetes"
+                ? "Diabetes"
+                : "Chronic Kidney Disease";
+
+
     return (
 
         <div className="container mt-5 mb-5">
@@ -648,9 +926,7 @@ function PatientForm() {
 
                     <h3 className="mb-1">
 
-                        🩺 {disease === "heart"
-                            ? "Heart Disease Prediction"
-                            : "Diabetes Prediction"}
+                        🩺 {diseaseName} Prediction
 
                     </h3>
 
@@ -661,6 +937,7 @@ function PatientForm() {
                     </small>
 
                 </div>
+
 
                 <div className="card-body p-4">
 
@@ -688,9 +965,14 @@ function PatientForm() {
                                 Diabetes
                             </option>
 
+                            <option value="ckd">
+                                Chronic Kidney Disease
+                            </option>
+
                         </select>
 
                     </div>
+
 
                     <form onSubmit={handleSubmit}>
 
@@ -716,6 +998,7 @@ function PatientForm() {
 
                             </div>
 
+
                             <div className="col-md-6 mb-3">
 
                                 <label className="form-label fw-bold">
@@ -734,6 +1017,7 @@ function PatientForm() {
 
                             </div>
 
+
                             <div className="col-md-6 mb-3">
 
                                 <label className="form-label fw-bold">
@@ -751,6 +1035,7 @@ function PatientForm() {
                                 />
 
                             </div>
+
 
                             <div className="col-md-6 mb-3">
 
@@ -772,7 +1057,9 @@ function PatientForm() {
 
                         </div>
 
+
                         <hr />
+
 
                         {/* DISEASE FIELDS */}
 
@@ -780,9 +1067,12 @@ function PatientForm() {
 
                             {disease === "heart"
                                 ? "Heart Disease Clinical Features"
-                                : "Diabetes Clinical Features"}
+                                : disease === "diabetes"
+                                    ? "Diabetes Clinical Features"
+                                    : "Chronic Kidney Disease Clinical Features"}
 
                         </h5>
+
 
                         <div className="row">
 
@@ -798,6 +1088,7 @@ function PatientForm() {
                                         {field.label}
 
                                     </label>
+
 
                                     {field.options ? (
 
@@ -843,15 +1134,9 @@ function PatientForm() {
                                             placeholder={
                                                 `Enter ${field.label}`
                                             }
-                                            min={
-                                                field.type === "text"
-                                                    ? undefined
-                                                    : "0"
-                                            }
+                                            min="0"
                                             step={
-                                                field.type === "text"
-                                                    ? undefined
-                                                    : "any"
+                                                field.step || "any"
                                             }
                                             required
                                         />
@@ -863,6 +1148,7 @@ function PatientForm() {
                             ))}
 
                         </div>
+
 
                         {/* BUTTONS */}
 
@@ -890,15 +1176,12 @@ function PatientForm() {
 
                                 ) : (
 
-                                    `Predict ${
-                                        disease === "heart"
-                                            ? "Heart Disease"
-                                            : "Diabetes"
-                                    }`
+                                    `Predict ${diseaseName}`
 
                                 )}
 
                             </button>
+
 
                             <button
                                 type="button"
@@ -918,6 +1201,7 @@ function PatientForm() {
 
             </div>
 
+
             {/* RESULTS */}
 
             {result && (
@@ -925,9 +1209,9 @@ function PatientForm() {
                 <>
 
                     <PatientSummary
-    formData={formData}
-    disease={disease}
-/>
+                        formData={formData}
+                        disease={disease}
+                    />
 
                     <div className="text-center mt-4 mb-4">
 
@@ -946,10 +1230,12 @@ function PatientForm() {
 
             )}
 
+
             <PredictionCard
-    result={result}
-    disease={disease}
-/>
+                result={result}
+                disease={disease}
+            />
+
 
             <FeatureImportance
                 features={result?.top_features}

@@ -57,6 +57,29 @@ diabetes_scaler = joblib.load(
 
 
 # ==========================================
+# Load CKD Model
+# ==========================================
+
+ckd_model = joblib.load(
+    os.path.join(
+        BASE_DIR,
+        "models",
+        "ckd",
+        "best_model.pkl"
+    )
+)
+
+ckd_scaler = joblib.load(
+    os.path.join(
+        BASE_DIR,
+        "models",
+        "ckd",
+        "scaler.pkl"
+    )
+)
+
+
+# ==========================================
 # Heart Disease Data
 # ==========================================
 
@@ -97,35 +120,42 @@ diabetes_feature_names = (
 
 
 # ==========================================
+# CKD Data
+# ==========================================
+
+ckd_X = pd.read_csv(
+    os.path.join(
+        BASE_DIR,
+        "datasets",
+        "processed",
+        "ckd",
+        "x_train.csv"
+    )
+)
+
+ckd_feature_names = (
+    ckd_X.columns.tolist()
+)
+
+
+# ==========================================
 # Feature Labels
 # ==========================================
 
 HEART_FEATURE_LABELS = {
 
     "age": "Age",
-
     "sex": "Sex",
-
     "cp": "Chest Pain Type",
-
     "trestbps": "Resting Blood Pressure",
-
     "chol": "Serum Cholesterol",
-
     "fbs": "Fasting Blood Sugar",
-
     "restecg": "Resting ECG",
-
     "thalach": "Maximum Heart Rate",
-
     "exang": "Exercise Induced Angina",
-
     "oldpeak": "ST Depression",
-
     "slope": "Slope of ST Segment",
-
     "ca": "Major Vessels",
-
     "thal": "Thalassemia"
 
 }
@@ -134,36 +164,51 @@ HEART_FEATURE_LABELS = {
 DIABETES_FEATURE_LABELS = {
 
     "Age": "Age",
-
     "Gender": "Gender",
-
     "Polyuria": "Polyuria",
-
     "Polydipsia": "Polydipsia",
-
     "sudden weight loss": "Sudden Weight Loss",
-
     "weakness": "Weakness",
-
     "Polyphagia": "Polyphagia",
-
     "Genital thrush": "Genital Thrush",
-
     "visual blurring": "Visual Blurring",
-
     "Itching": "Itching",
-
     "Irritability": "Irritability",
-
     "delayed healing": "Delayed Healing",
-
     "partial paresis": "Partial Paresis",
-
     "muscle stiffness": "Muscle Stiffness",
-
     "Alopecia": "Alopecia",
-
     "Obesity": "Obesity"
+
+}
+
+
+CKD_FEATURE_LABELS = {
+
+    "age": "Age",
+    "bp": "Blood Pressure",
+    "sg": "Specific Gravity",
+    "al": "Albumin",
+    "su": "Sugar",
+    "rbc": "Red Blood Cells",
+    "pc": "Pus Cell",
+    "pcc": "Pus Cell Clumps",
+    "ba": "Bacteria",
+    "bgr": "Blood Glucose Random",
+    "bu": "Blood Urea",
+    "sc": "Serum Creatinine",
+    "sod": "Sodium",
+    "pot": "Potassium",
+    "hemo": "Hemoglobin",
+    "pcv": "Packed Cell Volume",
+    "wbcc": "White Blood Cell Count",
+    "rbcc": "Red Blood Cell Count",
+    "htn": "Hypertension",
+    "dm": "Diabetes Mellitus",
+    "cad": "Coronary Artery Disease",
+    "appet": "Appetite",
+    "pe": "Pedal Edema",
+    "ane": "Anemia"
 
 }
 
@@ -178,6 +223,10 @@ heart_explainer = shap.TreeExplainer(
 
 diabetes_explainer = shap.TreeExplainer(
     diabetes_model
+)
+
+ckd_explainer = shap.TreeExplainer(
+    ckd_model
 )
 
 
@@ -208,9 +257,7 @@ def explain(features, disease="heart"):
 
         values = shap_values.values[0]
 
-        # Binary classification handling
         if len(values.shape) > 1:
-
             values = values[:, 1]
 
         explanation = []
@@ -258,9 +305,7 @@ def explain(features, disease="heart"):
 
         values = shap_values.values[0]
 
-        # SHAP 0.52 binary classification
         if len(values.shape) > 1:
-
             values = values[:, 1]
 
         explanation = []
@@ -274,6 +319,55 @@ def explain(features, disease="heart"):
 
                 "feature":
                     DIABETES_FEATURE_LABELS.get(
+                        feature,
+                        feature
+                    ),
+
+                "impact":
+                    round(
+                        float(impact),
+                        4
+                    )
+
+            })
+
+
+    # ======================================
+    # CKD
+    # ======================================
+
+    elif disease == "ckd":
+
+        patient_df = pd.DataFrame(
+            [features],
+            columns=ckd_feature_names
+        )
+
+        patient_scaled = ckd_scaler.transform(
+            patient_df
+        )
+
+        shap_values = ckd_explainer(
+            patient_scaled
+        )
+
+        values = shap_values.values[0]
+
+        # Handle binary classification
+        if len(values.shape) > 1:
+            values = values[:, 1]
+
+        explanation = []
+
+        for feature, impact in zip(
+            ckd_feature_names,
+            values
+        ):
+
+            explanation.append({
+
+                "feature":
+                    CKD_FEATURE_LABELS.get(
                         feature,
                         feature
                     ),
@@ -312,5 +406,8 @@ def explain(features, disease="heart"):
     )
 
 
+    # ======================================
     # Return Top 5
+    # ======================================
+
     return explanation[:5]

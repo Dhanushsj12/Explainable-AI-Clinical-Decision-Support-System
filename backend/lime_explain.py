@@ -8,7 +8,9 @@ from model_loader import (
     heart_model,
     heart_scaler,
     diabetes_model,
-    diabetes_scaler
+    diabetes_scaler,
+    ckd_model,
+    ckd_scaler
 )
 
 
@@ -34,13 +36,18 @@ heart_df = pd.read_csv(
     )
 )
 
-heart_X_train = heart_df.drop("target", axis=1)
+heart_X_train = heart_df.drop(
+    "target",
+    axis=1
+)
 
 heart_X_train_scaled = heart_scaler.transform(
     heart_X_train
 )
 
-heart_feature_names = heart_X_train.columns.tolist()
+heart_feature_names = (
+    heart_X_train.columns.tolist()
+)
 
 
 heart_explainer = LimeTabularExplainer(
@@ -76,7 +83,9 @@ diabetes_df = pd.read_csv(
 
 diabetes_X_train_scaled = diabetes_df
 
-diabetes_feature_names = diabetes_df.columns.tolist()
+diabetes_feature_names = (
+    diabetes_df.columns.tolist()
+)
 
 
 diabetes_explainer = LimeTabularExplainer(
@@ -97,12 +106,52 @@ diabetes_explainer = LimeTabularExplainer(
 
 
 # ==========================================
+# CKD LIME
+# ==========================================
+
+ckd_df = pd.read_csv(
+    os.path.join(
+        BASE_DIR,
+        "datasets",
+        "processed",
+        "ckd",
+        "x_train.csv"
+    )
+)
+
+ckd_X_train_scaled = ckd_df
+
+ckd_feature_names = (
+    ckd_df.columns.tolist()
+)
+
+
+ckd_explainer = LimeTabularExplainer(
+
+    training_data=ckd_X_train_scaled.values,
+
+    feature_names=ckd_feature_names,
+
+    class_names=[
+        "Not CKD",
+        "CKD"
+    ],
+
+    mode="classification",
+
+    random_state=42
+)
+
+
+# ==========================================
 # LIME Function
 # ==========================================
 
 def lime_explain(features, disease="heart"):
 
-    patient = np.array(features).reshape(1, -1)
+    patient = np.array(
+        features
+    ).reshape(1, -1)
 
 
     # ======================================
@@ -144,6 +193,30 @@ def lime_explain(features, disease="heart"):
             num_features=5
         )
 
+
+    # ======================================
+    # CKD
+    # ======================================
+
+    elif disease == "ckd":
+
+        patient_scaled = ckd_scaler.transform(
+            patient
+        )
+
+        explanation = ckd_explainer.explain_instance(
+
+            patient_scaled[0],
+
+            ckd_model.predict_proba,
+
+            num_features=5
+        )
+
+
+    # ======================================
+    # Invalid Disease
+    # ======================================
 
     else:
 

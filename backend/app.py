@@ -182,6 +182,118 @@ def build_diabetes_patient_data(data, features):
 
 
 # ==========================================
+# Build CKD Patient Data
+# ==========================================
+
+def build_ckd_patient_data(data, features):
+
+    ckd_features = [
+        "age",
+        "bp",
+        "sg",
+        "al",
+        "su",
+        "rbc",
+        "pc",
+        "pcc",
+        "ba",
+        "bgr",
+        "bu",
+        "sc",
+        "sod",
+        "pot",
+        "hemo",
+        "pcv",
+        "wbcc",
+        "rbcc",
+        "htn",
+        "dm",
+        "cad",
+        "appet",
+        "pe",
+        "ane"
+    ]
+
+    patient = {
+
+        "patient_id":
+            data.get("patient_id", ""),
+
+        "patient_name":
+            data.get("patient_name", ""),
+
+        "doctor_name":
+            data.get("doctor_name", ""),
+
+        "hospital_name":
+            data.get("hospital_name", ""),
+
+        "disease":
+            "Chronic Kidney Disease"
+    }
+
+    # ======================================
+    # CKD Feature Conversion
+    # ======================================
+
+    for index, feature_name in enumerate(
+        ckd_features
+    ):
+
+        value = features[index]
+
+        # Numeric features
+        if feature_name in [
+            "age",
+            "bp",
+            "sg",
+            "al",
+            "su",
+            "bgr",
+            "bu",
+            "sc",
+            "sod",
+            "pot",
+            "hemo",
+            "pcv",
+            "wbcc",
+            "rbcc"
+        ]:
+
+            patient[feature_name] = value
+
+        # Binary categorical features
+        elif feature_name in [
+            "rbc",
+            "pc",
+            "pcc",
+            "ba",
+            "htn",
+            "dm",
+            "cad",
+            "pe",
+            "ane"
+        ]:
+
+            patient[feature_name] = (
+                "Yes"
+                if value == 1
+                else "No"
+            )
+
+        # Appetite
+        elif feature_name == "appet":
+
+            patient[feature_name] = (
+                "Poor"
+                if value == 1
+                else "Good"
+            )
+
+    return patient
+
+
+# ==========================================
 # Build Patient Data
 # ==========================================
 
@@ -190,6 +302,13 @@ def build_patient_data(data, features, disease):
     if disease == "diabetes":
 
         return build_diabetes_patient_data(
+            data,
+            features
+        )
+
+    elif disease == "ckd":
+
+        return build_ckd_patient_data(
             data,
             features
         )
@@ -216,13 +335,15 @@ def home():
             "Running",
 
         "version":
-            "2.0",
+            "3.0",
 
         "supported_diseases": [
 
             "heart",
 
-            "diabetes"
+            "diabetes",
+
+            "ckd"
 
         ]
 
@@ -257,13 +378,14 @@ def prediction():
 
     if disease not in [
         "heart",
-        "diabetes"
+        "diabetes",
+        "ckd"
     ]:
 
         return jsonify({
 
             "error":
-                "Unsupported disease. Use 'heart' or 'diabetes'."
+                "Unsupported disease. Use 'heart', 'diabetes', or 'ckd'."
 
         }), 400
 
@@ -293,7 +415,9 @@ def prediction():
 
         "heart": 13,
 
-        "diabetes": 16
+        "diabetes": 16,
+
+        "ckd": 24
 
     }
 
@@ -433,7 +557,8 @@ def report():
 
     if disease not in [
         "heart",
-        "diabetes"
+        "diabetes",
+        "ckd"
     ]:
 
         return jsonify({
@@ -465,7 +590,9 @@ def report():
 
         "heart": 13,
 
-        "diabetes": 16
+        "diabetes": 16,
+
+        "ckd": 24
 
     }
 
