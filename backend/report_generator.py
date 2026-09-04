@@ -274,6 +274,50 @@ def generate_report(patient, result, output_path):
 
             ])
 
+    # ======================================
+    # CKD Fields
+    # ======================================
+
+    elif str(patient.get("disease", "")).lower() in ["ckd", "chronic kidney disease"]:
+
+        ckd_labels = {
+
+            "age": "Age",
+            "bp": "Blood Pressure",
+            "sg": "Specific Gravity",
+            "al": "Albumin",
+            "su": "Sugar",
+            "rbc": "Red Blood Cells",
+            "pc": "Pus Cell",
+            "pcc": "Pus Cell Clumps",
+            "ba": "Bacteria",
+            "bgr": "Blood Glucose Random",
+            "bu": "Blood Urea",
+            "sc": "Serum Creatinine",
+            "sod": "Sodium",
+            "pot": "Potassium",
+            "hemo": "Hemoglobin",
+            "pcv": "Packed Cell Volume",
+            "wbcc": "White Blood Cell Count",
+            "rbcc": "Red Blood Cell Count",
+            "htn": "Hypertension",
+            "dm": "Diabetes Mellitus",
+            "cad": "Coronary Artery Disease",
+            "appet": "Appetite",
+            "pe": "Pedal Edema",
+            "ane": "Anemia"
+
+        }
+
+        for key, label in ckd_labels.items():
+
+            patient_data.append([
+
+                label,
+
+                patient.get(key, "")
+
+            ])
 
     # ======================================
     # Patient Table
