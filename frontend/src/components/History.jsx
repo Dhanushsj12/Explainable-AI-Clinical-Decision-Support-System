@@ -16,7 +16,9 @@ function History() {
         try {
 
             const response = await API.get("/history");
+
             console.log("History Data:", response.data);
+
             setHistory(response.data);
 
         }
@@ -28,87 +30,153 @@ function History() {
 
     };
 
+    const getRiskClass = (risk) => {
+
+        if (risk === "High") {
+            return "badge bg-danger";
+        }
+
+        if (risk === "Moderate") {
+            return "badge bg-warning text-dark";
+        }
+
+        return "badge bg-success";
+
+    };
+
+    const getDiseaseName = (disease) => {
+
+        if (!disease) {
+            return "—";
+        }
+
+        return disease;
+
+    };
+
     return (
 
-        <div className="container mt-5">
+        <div className="container mt-5 mb-5">
 
             <div className="card shadow border-0">
 
                 <div className="card-header bg-dark text-white">
 
-                    <h4>📋 Prediction History</h4>
+                    <h4 className="mb-0">
+                        📋 Prediction History
+                    </h4>
 
                 </div>
 
                 <div className="card-body">
 
-                    <table className="table table-striped">
+                    {history.length === 0 ? (
 
-                        <thead>
+                        <div className="text-center text-muted py-4">
 
-                            <tr>
+                            No prediction history available.
 
-                                <th>ID</th>
+                        </div>
 
-                                <th>Patient ID</th>
+                    ) : (
 
-                                <th>Name</th>
+                        <div className="table-responsive">
 
-                                <th>Prediction</th>
+                            <table className="table table-striped table-hover align-middle">
 
-                                <th>Probability</th>
+                                <thead>
 
-                                <th>Risk</th>
+                                    <tr>
 
-                                <th>Date</th>
+                                        <th>ID</th>
 
-                            </tr>
+                                        <th>Patient ID</th>
 
-                        </thead>
+                                        <th>Name</th>
 
-                        <tbody>
+                                        <th>Disease</th>
 
-                            {history.map((item) => (
+                                        <th>Prediction</th>
 
-                                <tr key={item.id}>
+                                        <th>Probability</th>
 
-                                    <td>{item.id}</td>
+                                        <th>Risk</th>
 
-                                    <td>{item.patient_id}</td>
+                                        <th>Date</th>
 
-                                    <td>{item.patient_name}</td>
+                                    </tr>
 
-                                    <td>{item.prediction}</td>
+                                </thead>
 
-                                    <td>{item.probability}%</td>
+                                <tbody>
 
-                                    <td>
+                                    {history.map((item) => (
 
-                                        <span
-                                            className={
-                                                item.risk_level === "High"
-                                                    ? "badge bg-danger"
-                                                    : item.risk_level === "Medium"
-                                                    ? "badge bg-warning"
-                                                    : "badge bg-success"
-                                            }
-                                        >
+                                        <tr key={item.id}>
 
-                                            {item.risk_level}
+                                            <td>
+                                                {item.id}
+                                            </td>
 
-                                        </span>
+                                            <td>
+                                                {item.patient_id}
+                                            </td>
 
-                                    </td>
+                                            <td>
+                                                {item.patient_name}
+                                            </td>
 
-                                    <td>{item.date}</td>
+                                            <td>
 
-                                </tr>
+                                                <span className="badge bg-info text-dark">
 
-                            ))}
+                                                    {getDiseaseName(
+                                                        item.disease
+                                                    )}
 
-                        </tbody>
+                                                </span>
 
-                    </table>
+                                            </td>
+
+                                            <td>
+                                                {item.prediction}
+                                            </td>
+
+                                            <td>
+                                                {item.probability}%
+                                            </td>
+
+                                            <td>
+
+                                                <span
+                                                    className={
+                                                        getRiskClass(
+                                                            item.risk_level
+                                                        )
+                                                    }
+                                                >
+
+                                                    {item.risk_level}
+
+                                                </span>
+
+                                            </td>
+
+                                            <td>
+                                                {item.date}
+                                            </td>
+
+                                        </tr>
+
+                                    ))}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    )}
 
                 </div>
 

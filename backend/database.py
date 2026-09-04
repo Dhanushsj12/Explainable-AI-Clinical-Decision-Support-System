@@ -1,7 +1,24 @@
 import sqlite3
+import os
 
-DATABASE = "predictions.db"
 
+# ==========================================
+# Database Path
+# ==========================================
+
+BASE_DIR = os.path.abspath(
+    os.path.dirname(__file__)
+)
+
+DATABASE = os.path.join(
+    BASE_DIR,
+    "predictions.db"
+)
+
+
+# ==========================================
+# Create Table
+# ==========================================
 
 def create_table():
 
@@ -18,6 +35,8 @@ def create_table():
             patient_id TEXT,
 
             patient_name TEXT,
+
+            disease TEXT,
 
             prediction TEXT,
 
@@ -36,6 +55,10 @@ def create_table():
     conn.close()
 
 
+# ==========================================
+# Save Prediction
+# ==========================================
+
 def save_prediction(patient, result):
 
     conn = sqlite3.connect(DATABASE)
@@ -50,6 +73,8 @@ def save_prediction(patient, result):
 
             patient_name,
 
+            disease,
+
             prediction,
 
             probability,
@@ -58,7 +83,7 @@ def save_prediction(patient, result):
 
         )
 
-        VALUES(?,?,?,?,?)
+        VALUES(?,?,?,?,?,?)
 
     """,
 
@@ -67,6 +92,8 @@ def save_prediction(patient, result):
         patient["patient_id"],
 
         patient["patient_name"],
+
+        patient["disease"],
 
         result["prediction"],
 
@@ -82,6 +109,10 @@ def save_prediction(patient, result):
 
     conn.close()
 
+
+# ==========================================
+# Get Prediction History
+# ==========================================
 
 def get_predictions():
 
@@ -105,4 +136,7 @@ def get_predictions():
 
     conn.close()
 
-    return [dict(row) for row in rows]
+    return [
+        dict(row)
+        for row in rows
+    ]

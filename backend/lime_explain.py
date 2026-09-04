@@ -1,71 +1,160 @@
+import os
+import numpy as np
 import pandas as pd
 
 from lime.lime_tabular import LimeTabularExplainer
 
-from model_loader import model, scaler
-
-# ==========================================
-# Load Training Data
-# ==========================================
-
-df = pd.read_csv(
-    "../datasets/processed/heart_preprocessed.csv"
+from model_loader import (
+    heart_model,
+    heart_scaler,
+    diabetes_model,
+    diabetes_scaler
 )
 
-X_train = df.drop("target", axis=1)
 
 # ==========================================
-# Scale Training Data
+# Base Directory
 # ==========================================
 
-X_train_scaled = scaler.transform(X_train)
+BASE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
+)
+
 
 # ==========================================
-# Feature Names
+# Heart Disease LIME
 # ==========================================
 
-feature_names = X_train.columns.tolist()
+heart_df = pd.read_csv(
+    os.path.join(
+        BASE_DIR,
+        "datasets",
+        "processed",
+        "heart_preprocessed.csv"
+    )
+)
 
-# ==========================================
-# Create LIME Explainer
-# ==========================================
+heart_X_train = heart_df.drop("target", axis=1)
 
-explainer = LimeTabularExplainer(
+heart_X_train_scaled = heart_scaler.transform(
+    heart_X_train
+)
 
-    training_data=X_train_scaled,
+heart_feature_names = heart_X_train.columns.tolist()
 
-    feature_names=feature_names,
+
+heart_explainer = LimeTabularExplainer(
+
+    training_data=heart_X_train_scaled,
+
+    feature_names=heart_feature_names,
 
     class_names=[
         "No Heart Disease",
         "Heart Disease"
     ],
 
-    mode="classification"
+    mode="classification",
 
+    random_state=42
 )
 
+
 # ==========================================
-# Explain One Patient
+# Diabetes LIME
 # ==========================================
 
-def lime_explain(features):
+diabetes_df = pd.read_csv(
+    os.path.join(
+        BASE_DIR,
+        "datasets",
+        "processed",
+        "diabetes",
+        "x_train.csv"
+    )
+)
 
-    import numpy as np
+diabetes_X_train_scaled = diabetes_df
+
+diabetes_feature_names = diabetes_df.columns.tolist()
+
+
+diabetes_explainer = LimeTabularExplainer(
+
+    training_data=diabetes_X_train_scaled.values,
+
+    feature_names=diabetes_feature_names,
+
+    class_names=[
+        "Negative",
+        "Positive"
+    ],
+
+    mode="classification",
+
+    random_state=42
+)
+
+
+# ==========================================
+# LIME Function
+# ==========================================
+
+def lime_explain(features, disease="heart"):
 
     patient = np.array(features).reshape(1, -1)
 
-    patient = scaler.transform(patient)
 
-    explanation = explainer.explain_instance(
+    # ======================================
+    # Heart Disease
+    # ======================================
 
-        patient[0],
+    if disease == "heart":
 
-        model.predict_proba,
+        patient_scaled = heart_scaler.transform(
+            patient
+        )
 
-        num_features=5
+        explanation = heart_explainer.explain_instance(
 
-    )
+            patient_scaled[0],
+
+            heart_model.predict_proba,
+
+            num_features=5
+        )
+
+
+    # ======================================
+    # Diabetes
+    # ======================================
+
+    elif disease == "diabetes":
+
+        patient_scaled = diabetes_scaler.transform(
+            patient
+        )
+
+        explanation = diabetes_explainer.explain_instance(
+
+            patient_scaled[0],
+
+            diabetes_model.predict_proba,
+
+            num_features=5
+        )
+
+
+    else:
+
+        raise ValueError(
+            f"Unsupported disease: {disease}"
+        )
+
+
+    # ======================================
+    # Convert Explanation
+    # ======================================
 
     result = []
 
@@ -75,8 +164,12 @@ def lime_explain(features):
 
             "feature": feature,
 
-            "impact": round(weight, 4)
+            "impact": round(
+                float(weight),
+                4
+            )
 
         })
+
 
     return result

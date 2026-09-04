@@ -1,84 +1,316 @@
+import os
 import pandas as pd
 import joblib
 import shap
 
-# ==========================================
-# Load Model and Scaler
-# ==========================================
-
-model = joblib.load("../models/logistic_regression.pkl")
-scaler = joblib.load("../models/scaler.pkl")
 
 # ==========================================
-# Load Dataset
+# Base Directory
 # ==========================================
 
-df = pd.read_csv("../datasets/processed/heart_preprocessed.csv")
+BASE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
+)
 
-X = df.drop("target", axis=1)
-
-# Scale dataset
-X_scaled = scaler.transform(X)
 
 # ==========================================
-# Feature Labels (User-Friendly Names)
+# Load Heart Disease Model
 # ==========================================
 
-FEATURE_LABELS = {
+heart_model = joblib.load(
+    os.path.join(
+        BASE_DIR,
+        "models",
+        "best_model.pkl"
+    )
+)
+
+heart_scaler = joblib.load(
+    os.path.join(
+        BASE_DIR,
+        "models",
+        "scaler.pkl"
+    )
+)
+
+
+# ==========================================
+# Load Diabetes Model
+# ==========================================
+
+diabetes_model = joblib.load(
+    os.path.join(
+        BASE_DIR,
+        "models",
+        "diabetes",
+        "best_model.pkl"
+    )
+)
+
+diabetes_scaler = joblib.load(
+    os.path.join(
+        BASE_DIR,
+        "models",
+        "diabetes_scaler.pkl"
+    )
+)
+
+
+# ==========================================
+# Heart Disease Data
+# ==========================================
+
+heart_df = pd.read_csv(
+    os.path.join(
+        BASE_DIR,
+        "datasets",
+        "processed",
+        "heart_preprocessed.csv"
+    )
+)
+
+heart_X = heart_df.drop(
+    "target",
+    axis=1
+)
+
+heart_feature_names = heart_X.columns.tolist()
+
+
+# ==========================================
+# Diabetes Data
+# ==========================================
+
+diabetes_X = pd.read_csv(
+    os.path.join(
+        BASE_DIR,
+        "datasets",
+        "processed",
+        "diabetes",
+        "x_train.csv"
+    )
+)
+
+diabetes_feature_names = (
+    diabetes_X.columns.tolist()
+)
+
+
+# ==========================================
+# Feature Labels
+# ==========================================
+
+HEART_FEATURE_LABELS = {
+
     "age": "Age",
+
     "sex": "Sex",
+
     "cp": "Chest Pain Type",
+
     "trestbps": "Resting Blood Pressure",
+
     "chol": "Serum Cholesterol",
+
     "fbs": "Fasting Blood Sugar",
+
     "restecg": "Resting ECG",
+
     "thalach": "Maximum Heart Rate",
+
     "exang": "Exercise Induced Angina",
+
     "oldpeak": "ST Depression",
+
     "slope": "Slope of ST Segment",
+
     "ca": "Major Vessels",
+
     "thal": "Thalassemia"
+
 }
 
+
+DIABETES_FEATURE_LABELS = {
+
+    "Age": "Age",
+
+    "Gender": "Gender",
+
+    "Polyuria": "Polyuria",
+
+    "Polydipsia": "Polydipsia",
+
+    "sudden weight loss": "Sudden Weight Loss",
+
+    "weakness": "Weakness",
+
+    "Polyphagia": "Polyphagia",
+
+    "Genital thrush": "Genital Thrush",
+
+    "visual blurring": "Visual Blurring",
+
+    "Itching": "Itching",
+
+    "Irritability": "Irritability",
+
+    "delayed healing": "Delayed Healing",
+
+    "partial paresis": "Partial Paresis",
+
+    "muscle stiffness": "Muscle Stiffness",
+
+    "Alopecia": "Alopecia",
+
+    "Obesity": "Obesity"
+
+}
+
+
 # ==========================================
-# Create SHAP Explainer
+# Create SHAP Explainers
 # ==========================================
 
-explainer = shap.Explainer(model, X_scaled)
+heart_explainer = shap.TreeExplainer(
+    heart_model
+)
 
-feature_names = list(X.columns)
+diabetes_explainer = shap.TreeExplainer(
+    diabetes_model
+)
+
 
 # ==========================================
-# Explain Prediction
+# SHAP Explanation Function
 # ==========================================
 
-def explain(patient):
+def explain(features, disease="heart"):
 
-    patient_df = pd.DataFrame([patient], columns=feature_names)
+    # ======================================
+    # Heart Disease
+    # ======================================
 
-    patient_scaled = scaler.transform(patient_df)
+    if disease == "heart":
 
-    shap_values = explainer(patient_scaled)
+        patient_df = pd.DataFrame(
+            [features],
+            columns=heart_feature_names
+        )
 
-    values = shap_values.values[0]
+        patient_scaled = heart_scaler.transform(
+            patient_df
+        )
 
-    explanation = []
+        shap_values = heart_explainer(
+            patient_scaled
+        )
 
-    for feature, impact in zip(feature_names, values):
+        values = shap_values.values[0]
 
-        explanation.append({
+        # Binary classification handling
+        if len(values.shape) > 1:
 
-            "feature": FEATURE_LABELS.get(feature, feature),
+            values = values[:, 1]
 
-            "impact": round(float(impact), 4)
+        explanation = []
 
-        })
+        for feature, impact in zip(
+            heart_feature_names,
+            values
+        ):
 
-    # Sort by highest absolute impact
+            explanation.append({
+
+                "feature":
+                    HEART_FEATURE_LABELS.get(
+                        feature,
+                        feature
+                    ),
+
+                "impact":
+                    round(
+                        float(impact),
+                        4
+                    )
+
+            })
+
+
+    # ======================================
+    # Diabetes
+    # ======================================
+
+    elif disease == "diabetes":
+
+        patient_df = pd.DataFrame(
+            [features],
+            columns=diabetes_feature_names
+        )
+
+        patient_scaled = diabetes_scaler.transform(
+            patient_df
+        )
+
+        shap_values = diabetes_explainer(
+            patient_scaled
+        )
+
+        values = shap_values.values[0]
+
+        # SHAP 0.52 binary classification
+        if len(values.shape) > 1:
+
+            values = values[:, 1]
+
+        explanation = []
+
+        for feature, impact in zip(
+            diabetes_feature_names,
+            values
+        ):
+
+            explanation.append({
+
+                "feature":
+                    DIABETES_FEATURE_LABELS.get(
+                        feature,
+                        feature
+                    ),
+
+                "impact":
+                    round(
+                        float(impact),
+                        4
+                    )
+
+            })
+
+
+    # ======================================
+    # Invalid Disease
+    # ======================================
+
+    else:
+
+        raise ValueError(
+            f"Unsupported disease: {disease}"
+        )
+
+
+    # ======================================
+    # Sort by Importance
+    # ======================================
+
     explanation.sort(
-        key=lambda x: abs(x["impact"]),
+
+        key=lambda x:
+            abs(x["impact"]),
+
         reverse=True
+
     )
 
-    # Return Top 5 Features
+
+    # Return Top 5
     return explanation[:5]

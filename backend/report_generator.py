@@ -13,11 +13,12 @@ from reportlab.lib.units import inch
 
 from datetime import datetime
 
-styles = getSampleStyleSheet()
 
-# ---------------------------------------
-# Custom Styles
-# ---------------------------------------
+# ==========================================
+# Styles
+# ==========================================
+
+styles = getSampleStyleSheet()
 
 title_style = styles["Heading1"]
 title_style.alignment = TA_CENTER
@@ -27,19 +28,22 @@ heading_style = styles["Heading2"]
 normal_style = styles["BodyText"]
 
 
-# ---------------------------------------
+# ==========================================
 # PDF Generator
-# ---------------------------------------
+# ==========================================
 
 def generate_report(patient, result, output_path):
 
-    document = SimpleDocTemplate(output_path)
+    document = SimpleDocTemplate(
+        output_path
+    )
 
     story = []
 
-    # =====================================
+
+    # ======================================
     # Title
-    # =====================================
+    # ======================================
 
     story.append(
         Paragraph(
@@ -55,24 +59,37 @@ def generate_report(patient, result, output_path):
         )
     )
 
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(
+        Spacer(
+            1,
+            0.3 * inch
+        )
+    )
 
-    # =====================================
+
+    # ======================================
     # Date
-    # =====================================
+    # ======================================
 
     story.append(
         Paragraph(
-            f"<b>Generated On:</b> {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}",
+            f"<b>Generated On:</b> "
+            f"{datetime.now().strftime('%d-%m-%Y %H:%M:%S')}",
             normal_style
         )
     )
 
-    story.append(Spacer(1, 0.25 * inch))
+    story.append(
+        Spacer(
+            1,
+            0.25 * inch
+        )
+    )
 
-    # =====================================
+
+    # ======================================
     # Patient Information
-    # =====================================
+    # ======================================
 
     story.append(
         Paragraph(
@@ -81,48 +98,241 @@ def generate_report(patient, result, output_path):
         )
     )
 
-    patient_table = Table([
 
-        ["Patient ID", patient["patient_id"]],
-        ["Patient Name", patient["patient_name"]],
-        ["Doctor", patient["doctor_name"]],
-        ["Hospital", patient["hospital_name"]],
+    patient_data = [
 
-        ["Age", patient["age"]],
-        ["Gender", patient["gender"]],
-        ["Chest Pain Type", patient["cp"]],
-        ["Resting Blood Pressure", f"{patient['trestbps']} mmHg"],
-        ["Cholesterol", f"{patient['chol']} mg/dL"],
-        ["Fasting Blood Sugar", patient["fbs"]],
-        ["Rest ECG", patient["restecg"]],
-        ["Maximum Heart Rate", patient["thalach"]],
-        ["Exercise Angina", patient["exang"]],
-        ["ST Depression", patient["oldpeak"]],
-        ["ST Segment Slope", patient["slope"]],
-        ["Major Vessels", patient["ca"]],
-        ["Thalassemia", patient["thal"]]
+        [
+            "Patient ID",
+            patient.get("patient_id", "")
+        ],
 
-    ])
+        [
+            "Patient Name",
+            patient.get("patient_name", "")
+        ],
 
-    patient_table.setStyle(TableStyle([
+        [
+            "Doctor",
+            patient.get("doctor_name", "")
+        ],
 
-        ("GRID", (0,0), (-1,-1), 1, colors.grey),
+        [
+            "Hospital",
+            patient.get("hospital_name", "")
+        ],
 
-        ("BACKGROUND", (0,0), (0,-1), colors.lightblue),
+        [
+            "Disease",
+            patient.get("disease", "")
+        ]
 
-        ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+    ]
 
-        ("BOTTOMPADDING", (0,0), (-1,-1), 8)
 
-    ]))
+    # ======================================
+    # Heart Disease Fields
+    # ======================================
 
-    story.append(patient_table)
+    if patient.get("disease") == "Heart Disease":
 
-    story.append(Spacer(1, 0.3 * inch))
+        patient_data.extend([
 
-    # =====================================
-    # Prediction
-    # =====================================
+            [
+                "Age",
+                patient.get("age", "")
+            ],
+
+            [
+                "Gender",
+                patient.get("gender", "")
+            ],
+
+            [
+                "Chest Pain Type",
+                patient.get("cp", "")
+            ],
+
+            [
+                "Resting Blood Pressure",
+                f"{patient.get('trestbps', '')} mmHg"
+            ],
+
+            [
+                "Cholesterol",
+                f"{patient.get('chol', '')} mg/dL"
+            ],
+
+            [
+                "Fasting Blood Sugar",
+                patient.get("fbs", "")
+            ],
+
+            [
+                "Rest ECG",
+                patient.get("restecg", "")
+            ],
+
+            [
+                "Maximum Heart Rate",
+                patient.get("thalach", "")
+            ],
+
+            [
+                "Exercise Angina",
+                patient.get("exang", "")
+            ],
+
+            [
+                "ST Depression",
+                patient.get("oldpeak", "")
+            ],
+
+            [
+                "ST Segment Slope",
+                patient.get("slope", "")
+            ],
+
+            [
+                "Major Vessels",
+                patient.get("ca", "")
+            ],
+
+            [
+                "Thalassemia",
+                patient.get("thal", "")
+            ]
+
+        ])
+
+
+    # ======================================
+    # Diabetes Fields
+    # ======================================
+
+    elif patient.get("disease") == "Diabetes":
+
+        diabetes_labels = {
+
+            "age":
+                "Age",
+
+            "gender":
+                "Gender",
+
+            "polyuria":
+                "Polyuria",
+
+            "polydipsia":
+                "Polydipsia",
+
+            "sudden_weight_loss":
+                "Sudden Weight Loss",
+
+            "weakness":
+                "Weakness",
+
+            "polyphagia":
+                "Polyphagia",
+
+            "genital_thrush":
+                "Genital Thrush",
+
+            "visual_blurring":
+                "Visual Blurring",
+
+            "itching":
+                "Itching",
+
+            "irritability":
+                "Irritability",
+
+            "delayed_healing":
+                "Delayed Healing",
+
+            "partial_paresis":
+                "Partial Paresis",
+
+            "muscle_stiffness":
+                "Muscle Stiffness",
+
+            "alopecia":
+                "Alopecia",
+
+            "obesity":
+                "Obesity"
+
+        }
+
+
+        for key, label in diabetes_labels.items():
+
+            patient_data.append([
+
+                label,
+
+                patient.get(key, "")
+
+            ])
+
+
+    # ======================================
+    # Patient Table
+    # ======================================
+
+    patient_table = Table(
+        patient_data
+    )
+
+    patient_table.setStyle(
+        TableStyle([
+
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                1,
+                colors.grey
+            ),
+
+            (
+                "BACKGROUND",
+                (0, 0),
+                (0, -1),
+                colors.lightblue
+            ),
+
+            (
+                "FONTNAME",
+                (0, 0),
+                (-1, -1),
+                "Helvetica"
+            ),
+
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                8
+            )
+
+        ])
+    )
+
+    story.append(
+        patient_table
+    )
+
+    story.append(
+        Spacer(
+            1,
+            0.3 * inch
+        )
+    )
+
+
+    # ======================================
+    # Prediction Result
+    # ======================================
 
     story.append(
         Paragraph(
@@ -131,33 +341,71 @@ def generate_report(patient, result, output_path):
         )
     )
 
+
     prediction_table = Table([
 
-        ["Prediction", result["prediction"]],
+        [
+            "Prediction",
+            result["prediction"]
+        ],
 
-        ["Probability", f"{result['probability']} %"],
+        [
+            "Probability",
+            f"{result['probability']} %"
+        ],
 
-        ["Risk Level", result["risk_level"]]
+        [
+            "Risk Level",
+            result["risk_level"]
+        ]
 
     ])
 
-    prediction_table.setStyle(TableStyle([
 
-        ("GRID",(0,0),(-1,-1),1,colors.grey),
+    prediction_table.setStyle(
+        TableStyle([
 
-        ("BACKGROUND",(0,0),(0,-1),colors.lightgreen),
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                1,
+                colors.grey
+            ),
 
-        ("BOTTOMPADDING",(0,0),(-1,-1),8)
+            (
+                "BACKGROUND",
+                (0, 0),
+                (0, -1),
+                colors.lightgreen
+            ),
 
-    ]))
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                8
+            )
 
-    story.append(prediction_table)
+        ])
+    )
 
-    story.append(Spacer(1,0.3*inch))
 
-    # =====================================
+    story.append(
+        prediction_table
+    )
+
+    story.append(
+        Spacer(
+            1,
+            0.3 * inch
+        )
+    )
+
+
+    # ======================================
     # Recommendation
-    # =====================================
+    # ======================================
 
     story.append(
         Paragraph(
@@ -173,11 +421,17 @@ def generate_report(patient, result, output_path):
         )
     )
 
-    story.append(Spacer(1,0.3*inch))
+    story.append(
+        Spacer(
+            1,
+            0.3 * inch
+        )
+    )
 
-    # =====================================
-    # SHAP Features
-    # =====================================
+
+    # ======================================
+    # SHAP Explanation
+    # ======================================
 
     story.append(
         Paragraph(
@@ -186,40 +440,94 @@ def generate_report(patient, result, output_path):
         )
     )
 
-    feature_data = [["Feature", "Impact"]]
 
-    for feature in result["top_features"]:
+    feature_data = [
+        ["Feature", "Impact"]
+    ]
+
+
+    for feature in result.get(
+        "top_features",
+        []
+    ):
 
         feature_data.append([
 
             feature["feature"],
 
-            str(round(feature["impact"],4))
+            str(
+                round(
+                    feature["impact"],
+                    4
+                )
+            )
 
         ])
 
-    feature_table = Table(feature_data)
 
-    feature_table.setStyle(TableStyle([
+    feature_table = Table(
+        feature_data
+    )
 
-        ("GRID",(0,0),(-1,-1),1,colors.black),
 
-        ("BACKGROUND",(0,0),(-1,0),colors.darkblue),
+    feature_table.setStyle(
+        TableStyle([
 
-        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                1,
+                colors.black
+            ),
 
-        ("BACKGROUND",(0,1),(-1,-1),colors.beige),
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, 0),
+                colors.darkblue
+            ),
 
-        ("BOTTOMPADDING",(0,0),(-1,-1),8)
+            (
+                "TEXTCOLOR",
+                (0, 0),
+                (-1, 0),
+                colors.white
+            ),
 
-    ]))
+            (
+                "BACKGROUND",
+                (0, 1),
+                (-1, -1),
+                colors.beige
+            ),
 
-    story.append(feature_table)
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                8
+            )
 
-    story.append(Spacer(1,0.4*inch))
-        # =====================================
+        ])
+    )
+
+
+    story.append(
+        feature_table
+    )
+
+    story.append(
+        Spacer(
+            1,
+            0.4 * inch
+        )
+    )
+
+
+    # ======================================
     # LIME Explanation
-    # =====================================
+    # ======================================
 
     story.append(
         Paragraph(
@@ -228,7 +536,11 @@ def generate_report(patient, result, output_path):
         )
     )
 
-    lime_data = [["Feature", "Impact"]]
+
+    lime_data = [
+        ["Feature", "Impact"]
+    ]
+
 
     if "lime_features" in result:
 
@@ -238,104 +550,149 @@ def generate_report(patient, result, output_path):
 
                 feature["feature"],
 
-                str(round(feature["impact"], 4))
+                str(
+                    round(
+                        feature["impact"],
+                        4
+                    )
+                )
 
             ])
 
-        lime_table = Table(lime_data)
 
-        lime_table.setStyle(TableStyle([
+        lime_table = Table(
+            lime_data
+        )
 
-            ("GRID", (0,0), (-1,-1), 1, colors.black),
 
-            ("BACKGROUND", (0,0), (-1,0), colors.orange),
+        lime_table.setStyle(
+            TableStyle([
 
-            ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+                (
+                    "GRID",
+                    (0, 0),
+                    (-1, -1),
+                    1,
+                    colors.black
+                ),
 
-            ("BACKGROUND", (0,1), (-1,-1), colors.beige),
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (-1, 0),
+                    colors.orange
+                ),
 
-            ("BOTTOMPADDING", (0,0), (-1,-1), 8)
+                (
+                    "TEXTCOLOR",
+                    (0, 0),
+                    (-1, 0),
+                    colors.white
+                ),
 
-        ]))
+                (
+                    "BACKGROUND",
+                    (0, 1),
+                    (-1, -1),
+                    colors.beige
+                ),
 
-        story.append(lime_table)
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    8
+                )
+
+            ])
+        )
+
+
+        story.append(
+            lime_table
+        )
+
 
     else:
 
         story.append(
-
             Paragraph(
-
-                "LIME explanation is not available for this prediction.",
-
+                "LIME explanation is not available "
+                "for this prediction.",
                 normal_style
-
             )
-
         )
 
-    story.append(Spacer(1, 0.4 * inch))
 
-    # =====================================
+    story.append(
+        Spacer(
+            1,
+            0.4 * inch
+        )
+    )
+
+
+    # ======================================
     # Footer
-    # =====================================
+    # ======================================
 
     story.append(
-
         Paragraph(
-
-            "<b>Generated by Explainable AI Clinical Decision Support System</b>",
-
+            "<b>Generated by Explainable AI "
+            "Clinical Decision Support System</b>",
             normal_style
-
         )
-
     )
 
     story.append(
-
         Paragraph(
-
             "Machine Learning • SHAP • LIME • Flask • React",
-
             normal_style
-
         )
-
     )
 
-    # =====================================
+
+    # ======================================
     # Signatures
-    # =====================================
-
-    story.append(Spacer(1, 0.4 * inch))
+    # ======================================
 
     story.append(
-
-        Paragraph(
-
-            "<b>Doctor Signature:</b> __________________________",
-
-            normal_style
-
+        Spacer(
+            1,
+            0.4 * inch
         )
-
     )
-
-    story.append(Spacer(1, 0.2 * inch))
 
     story.append(
-
         Paragraph(
-
-            "<b>Patient Signature:</b> __________________________",
-
+            "<b>Doctor Signature:</b> "
+            "__________________________",
             normal_style
-
         )
-
     )
 
-    document.build(story)
+    story.append(
+        Spacer(
+            1,
+            0.2 * inch
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "<b>Patient Signature:</b> "
+            "__________________________",
+            normal_style
+        )
+    )
+
+
+    # ======================================
+    # Build PDF
+    # ======================================
+
+    document.build(
+        story
+    )
 
     return output_path

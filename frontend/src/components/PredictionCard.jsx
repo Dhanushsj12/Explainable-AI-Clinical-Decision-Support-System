@@ -1,18 +1,21 @@
-function PredictionCard({ result }) {
+function PredictionCard({ result, disease }) {
 
     if (!result) return null;
 
     const riskColor =
         result.risk_level === "High"
             ? "danger"
-            : result.risk_level === "Medium"
+            : result.risk_level === "Moderate"
             ? "warning"
             : "success";
 
-    const predictionColor =
-        result.prediction === "Heart Disease"
-            ? "danger"
-            : "success";
+    const isPositive =
+        result.prediction_class === 1;
+
+    const diseaseName =
+        disease === "diabetes"
+            ? "Diabetes"
+            : "Heart Disease";
 
     return (
 
@@ -30,11 +33,17 @@ function PredictionCard({ result }) {
 
                 <div className="text-center mb-4">
 
-                    <h2 className={`text-${predictionColor}`}>
+                    <h2
+                        className={
+                            isPositive
+                                ? "text-danger"
+                                : "text-success"
+                        }
+                    >
 
-                        {result.prediction === "Heart Disease"
-                            ? "❤️ Heart Disease Detected"
-                            : "💚 No Heart Disease"}
+                        {isPositive
+                            ? `⚠️ ${diseaseName} Detected`
+                            : `💚 No ${diseaseName}`}
 
                     </h2>
 
@@ -73,7 +82,9 @@ function PredictionCard({ result }) {
                                 <span
                                     className={`badge bg-${riskColor} fs-6`}
                                 >
+
                                     {result.risk_level}
+
                                 </span>
 
                             </div>
