@@ -363,78 +363,59 @@ def preprocess_stroke_for_shap(features):
     """
     Convert raw Stroke patient data into the same
     21-feature scaled format used by the Stroke model.
-    Accepts either a dictionary or a list.
+
+    Accepts either:
+        1. Dictionary
+        2. List / Tuple
     """
 
-    # If backend sends a dictionary
+    # --------------------------------------
+    # Convert dictionary to ordered list
+    # --------------------------------------
+
     if isinstance(features, dict):
+
         features = [
             features.get(feature)
             for feature in STROKE_RAW_FEATURES
         ]
 
-    # If features are provided as a list
+
+    # --------------------------------------
+    # Validate input type
+    # --------------------------------------
+
     if not isinstance(features, (list, tuple)):
+
         raise ValueError(
             "Stroke features must be provided as a dictionary or list."
         )
 
+
+    # --------------------------------------
+    # Validate number of features
+    # --------------------------------------
+
     if len(features) != len(STROKE_RAW_FEATURES):
+
         raise ValueError(
             f"Stroke requires {len(STROKE_RAW_FEATURES)} features, "
             f"but received {len(features)}."
         )
 
-    # Create DataFrame using the correct raw feature order
-    patient_df = pd.DataFrame(
-        [features],
-        columns=STROKE_RAW_FEATURES
-    )
-
-    # Convert numerical features
-    for col in STROKE_NUMERIC_FEATURES:
-        patient_df[col] = pd.to_numeric(
-            patient_df[col],
-            errors="coerce"
-        )
-
-    # Apply the same numerical imputer used during training
-    patient_numeric = stroke_imputer.transform(
-        patient_df[STROKE_NUMERIC_FEATURES]
-    )
-
-    patient_df[STROKE_NUMERIC_FEATURES] = patient_numeric
-
-    # One-hot encode categorical features
-    patient_encoded = pd.get_dummies(
-        patient_df[STROKE_CATEGORICAL_FEATURES],
-        drop_first=False
-    )
-
-    # Make sure exactly the same 21 features are used
-    patient_encoded = patient_encoded.reindex(
-        columns=stroke_feature_names,
-        fill_value=0
-    )
-
-    # Convert to float
-    patient_encoded = patient_encoded.astype(float)
-
-    # Apply the same scaler used during training
-    patient_scaled = stroke_scaler.transform(
-        patient_encoded
-    )
-
-    return patient_scaled
-
-    # Create DataFrame using the raw 10 Stroke features
-    patient_df = pd.DataFrame(
-        [features],
-        columns=STROKE_RAW_FEATURES
-    )
 
     # --------------------------------------
-    # Convert numerical columns
+    # Create DataFrame
+    # --------------------------------------
+
+    patient_df = pd.DataFrame(
+        [features],
+        columns=STROKE_RAW_FEATURES
+    )
+
+
+    # --------------------------------------
+    # Convert numerical features
     # --------------------------------------
 
     for column in STROKE_NUMERIC_FEATURES:
@@ -444,46 +425,62 @@ def preprocess_stroke_for_shap(features):
             errors="coerce"
         )
 
+
     # --------------------------------------
     # Apply trained numerical imputer
     # --------------------------------------
 
-    patient_df[STROKE_NUMERIC_FEATURES] = stroke_imputer.transform(
-        patient_df[STROKE_NUMERIC_FEATURES]
+    patient_df[STROKE_NUMERIC_FEATURES] = (
+        stroke_imputer.transform(
+            patient_df[STROKE_NUMERIC_FEATURES]
+        )
     )
+
 
     # --------------------------------------
     # One-hot encode categorical columns
+    #
+    # IMPORTANT:
+    # Keep the numerical columns.
+    # This must match prediction.py.
     # --------------------------------------
 
-    patient_df = pd.get_dummies(
+    patient_encoded = pd.get_dummies(
         patient_df,
         columns=STROKE_CATEGORICAL_FEATURES,
         drop_first=False
     )
 
+
     # --------------------------------------
-    # Match training feature order
+    # Match exact training feature order
     # --------------------------------------
 
-    patient_df = patient_df.reindex(
+    patient_encoded = patient_encoded.reindex(
         columns=stroke_feature_names,
         fill_value=0
     )
+
 
     # --------------------------------------
     # Convert all values to float
     # --------------------------------------
 
-    patient_df = patient_df.astype(float)
+    patient_encoded = patient_encoded.astype(float)
+
 
     # --------------------------------------
     # Apply trained scaler
     # --------------------------------------
 
     patient_scaled = stroke_scaler.transform(
-        patient_df
+        patient_encoded
     )
+
+
+    # --------------------------------------
+    # Return processed data
+    # --------------------------------------
 
     return patient_scaled
 
@@ -516,6 +513,7 @@ def explain(features, disease="heart"):
         values = shap_values.values[0]
 
         if len(values.shape) > 1:
+
             values = values[:, 1]
 
         explanation = []
@@ -524,6 +522,7 @@ def explain(features, disease="heart"):
             heart_feature_names,
             values
         ):
+
             explanation.append({
                 "feature": HEART_FEATURE_LABELS.get(
                     feature,
@@ -558,6 +557,7 @@ def explain(features, disease="heart"):
         values = shap_values.values[0]
 
         if len(values.shape) > 1:
+
             values = values[:, 1]
 
         explanation = []
@@ -566,6 +566,7 @@ def explain(features, disease="heart"):
             diabetes_feature_names,
             values
         ):
+
             explanation.append({
                 "feature": DIABETES_FEATURE_LABELS.get(
                     feature,
@@ -600,6 +601,7 @@ def explain(features, disease="heart"):
         values = shap_values.values[0]
 
         if len(values.shape) > 1:
+
             values = values[:, 1]
 
         explanation = []
@@ -608,6 +610,7 @@ def explain(features, disease="heart"):
             ckd_feature_names,
             values
         ):
+
             explanation.append({
                 "feature": CKD_FEATURE_LABELS.get(
                     feature,
@@ -626,22 +629,45 @@ def explain(features, disease="heart"):
 
     elif disease == "stroke":
 
-        # Convert raw Stroke inputs into
-        # the same 21-feature representation
-        # used during model training.
+        # ----------------------------------
+        # Convert raw Stroke input into
+        # exactly the same representation
+        # used by the Stroke prediction model.
+        # ----------------------------------
 
         patient_scaled = preprocess_stroke_for_shap(
             features
         )
 
+
+        # ----------------------------------
+        # Generate SHAP explanation
+        # ----------------------------------
+
         shap_values = stroke_explainer(
             patient_scaled
         )
 
+
+        # ----------------------------------
+        # Get SHAP values for patient
+        # ----------------------------------
+
         values = shap_values.values[0]
 
+
+        # ----------------------------------
+        # Handle multi-output SHAP values
+        # ----------------------------------
+
         if len(values.shape) > 1:
+
             values = values[:, 1]
+
+
+        # ----------------------------------
+        # Create explanation list
+        # ----------------------------------
 
         explanation = []
 
@@ -649,6 +675,7 @@ def explain(features, disease="heart"):
             stroke_feature_names,
             values
         ):
+
             explanation.append({
                 "feature": STROKE_FEATURE_LABELS.get(
                     feature,
@@ -673,7 +700,7 @@ def explain(features, disease="heart"):
 
 
     # ======================================
-    # Sort by Importance
+    # Sort by Absolute Importance
     # ======================================
 
     explanation.sort(
@@ -683,7 +710,7 @@ def explain(features, disease="heart"):
 
 
     # ======================================
-    # Return Top 5
+    # Return Top 5 Features
     # ======================================
 
     return explanation[:5]
