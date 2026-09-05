@@ -334,6 +334,43 @@ Prediction results can be stored in the application database.
 This allows previous prediction records to be viewed through the History section of the application.
 
 ---
+## 📸 System Screenshots
+
+### Dashboard
+The main dashboard provides an overview of the clinical decision support system and available disease modules.
+
+![Dashboard](Screenshots/DASHBOARD.png)
+
+### Diabetes Prediction
+Diabetes risk assessment using clinical parameters with model prediction and explainability results.
+
+![Diabetes Prediction](Screenshots/DIABETES.png)
+
+### Heart Disease Prediction
+Heart disease assessment with prediction probability, risk classification, and explainable AI outputs.
+
+![Heart Disease Prediction](Screenshots/HEARTDISEASE.png)
+
+### Chronic Kidney Disease Prediction
+CKD risk assessment using patient clinical parameters with prediction and explanation.
+
+![CKD Prediction](Screenshots/KIDNEY.png)
+
+### Stroke Prediction
+Stroke risk assessment using demographic and clinical risk factors.
+
+![Stroke Prediction](Screenshots/STROKE.png)
+
+### Prediction History
+Previous patient assessments can be viewed through the prediction history interface.
+
+![Prediction History](Screenshots/HISTORY.png)
+
+### Clinical Report
+The system generates a clinical prediction report containing patient information, prediction results, recommendations, SHAP explanations, and LIME explanations.
+
+![Clinical Report](Screenshots/REPORT1.1.png)
+----
 
 # Supported Diseases
 
