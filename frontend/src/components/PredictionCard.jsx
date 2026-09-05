@@ -2,6 +2,11 @@ function PredictionCard({ result, disease }) {
 
     if (!result) return null;
 
+
+    // ==========================================
+    // Risk Color
+    // ==========================================
+
     const riskColor =
         result.risk_level === "High"
             ? "danger"
@@ -9,13 +14,79 @@ function PredictionCard({ result, disease }) {
             ? "warning"
             : "success";
 
+
+    // ==========================================
+    // Prediction
+    // ==========================================
+
     const isPositive =
         result.prediction_class === 1;
 
-    const diseaseName =
-        disease === "diabetes"
-            ? "Diabetes"
-            : "Heart Disease";
+
+    // ==========================================
+    // Disease Name
+    // ==========================================
+
+    const getDiseaseName = () => {
+
+        switch (disease) {
+
+            case "heart":
+                return "Heart Disease";
+
+            case "diabetes":
+                return "Diabetes";
+
+            case "ckd":
+                return "Chronic Kidney Disease";
+
+            case "stroke":
+                return "Stroke";
+
+            default:
+                return "Disease";
+        }
+    };
+
+
+    const diseaseName = getDiseaseName();
+
+
+    // ==========================================
+    // Result Message
+    // ==========================================
+
+    const getPredictionMessage = () => {
+
+        if (disease === "stroke") {
+
+            return isPositive
+                ? `⚠️ Stroke Detected`
+                : `💚 No Stroke Detected`;
+        }
+
+
+        if (disease === "ckd") {
+
+            return isPositive
+                ? `⚠️ Chronic Kidney Disease Detected`
+                : `💚 No Chronic Kidney Disease`;
+        }
+
+
+        if (disease === "diabetes") {
+
+            return isPositive
+                ? `⚠️ Diabetes Detected`
+                : `💚 No Diabetes`;
+        }
+
+
+        return isPositive
+            ? `⚠️ Heart Disease Detected`
+            : `💚 No Heart Disease`;
+    };
+
 
     return (
 
@@ -29,6 +100,7 @@ function PredictionCard({ result, disease }) {
 
             </div>
 
+
             <div className="card-body">
 
                 <div className="text-center mb-4">
@@ -41,15 +113,18 @@ function PredictionCard({ result, disease }) {
                         }
                     >
 
-                        {isPositive
-                            ? `⚠️ ${diseaseName} Detected`
-                            : `💚 No ${diseaseName}`}
+                        {getPredictionMessage()}
 
                     </h2>
 
                 </div>
 
+
                 <div className="row text-center">
+
+                    {/* ==================================
+                        Probability
+                    ================================== */}
 
                     <div className="col-md-4">
 
@@ -57,7 +132,9 @@ function PredictionCard({ result, disease }) {
 
                             <div className="card-body">
 
-                                <h6>Probability</h6>
+                                <h6>
+                                    Probability
+                                </h6>
 
                                 <h3 className="text-primary">
 
@@ -71,13 +148,20 @@ function PredictionCard({ result, disease }) {
 
                     </div>
 
+
+                    {/* ==================================
+                        Risk
+                    ================================== */}
+
                     <div className="col-md-4">
 
                         <div className="card bg-light">
 
                             <div className="card-body">
 
-                                <h6>Risk Level</h6>
+                                <h6>
+                                    Risk Level
+                                </h6>
 
                                 <span
                                     className={`badge bg-${riskColor} fs-6`}
@@ -93,13 +177,20 @@ function PredictionCard({ result, disease }) {
 
                     </div>
 
+
+                    {/* ==================================
+                        Prediction Class
+                    ================================== */}
+
                     <div className="col-md-4">
 
                         <div className="card bg-light">
 
                             <div className="card-body">
 
-                                <h6>Prediction Class</h6>
+                                <h6>
+                                    Prediction Class
+                                </h6>
 
                                 <h3>
 
@@ -114,6 +205,11 @@ function PredictionCard({ result, disease }) {
                     </div>
 
                 </div>
+
+
+                {/* ======================================
+                    Recommendation
+                ====================================== */}
 
                 <div className="alert alert-info mt-4">
 

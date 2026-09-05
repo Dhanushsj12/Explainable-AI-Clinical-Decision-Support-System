@@ -35,11 +35,15 @@ normal_style = styles["BodyText"]
 def generate_report(patient, result, output_path):
 
     document = SimpleDocTemplate(
-        output_path
+        output_path,
+        pagesize=(8.27 * inch, 11.69 * inch),
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=40,
+        bottomMargin=40
     )
 
     story = []
-
 
     # ======================================
     # Title
@@ -60,15 +64,11 @@ def generate_report(patient, result, output_path):
     )
 
     story.append(
-        Spacer(
-            1,
-            0.3 * inch
-        )
+        Spacer(1, 0.25 * inch)
     )
 
-
     # ======================================
-    # Date
+    # Generated Date
     # ======================================
 
     story.append(
@@ -80,12 +80,8 @@ def generate_report(patient, result, output_path):
     )
 
     story.append(
-        Spacer(
-            1,
-            0.25 * inch
-        )
+        Spacer(1, 0.25 * inch)
     )
-
 
     # ======================================
     # Patient Information
@@ -98,36 +94,34 @@ def generate_report(patient, result, output_path):
         )
     )
 
-
     patient_data = [
+        ["Field", "Value"],
 
         [
             "Patient ID",
-            patient.get("patient_id", "")
+            str(patient.get("patient_id", ""))
         ],
 
         [
             "Patient Name",
-            patient.get("patient_name", "")
+            str(patient.get("patient_name", ""))
         ],
 
         [
             "Doctor",
-            patient.get("doctor_name", "")
+            str(patient.get("doctor_name", ""))
         ],
 
         [
             "Hospital",
-            patient.get("hospital_name", "")
+            str(patient.get("hospital_name", ""))
         ],
 
         [
             "Disease",
-            patient.get("disease", "")
+            str(patient.get("disease", ""))
         ]
-
     ]
-
 
     # ======================================
     # Heart Disease Fields
@@ -137,20 +131,11 @@ def generate_report(patient, result, output_path):
 
         patient_data.extend([
 
-            [
-                "Age",
-                patient.get("age", "")
-            ],
+            ["Age", str(patient.get("age", ""))],
 
-            [
-                "Gender",
-                patient.get("gender", "")
-            ],
+            ["Gender", str(patient.get("gender", ""))],
 
-            [
-                "Chest Pain Type",
-                patient.get("cp", "")
-            ],
+            ["Chest Pain Type", str(patient.get("cp", ""))],
 
             [
                 "Resting Blood Pressure",
@@ -164,46 +149,44 @@ def generate_report(patient, result, output_path):
 
             [
                 "Fasting Blood Sugar",
-                patient.get("fbs", "")
+                str(patient.get("fbs", ""))
             ],
 
             [
                 "Rest ECG",
-                patient.get("restecg", "")
+                str(patient.get("restecg", ""))
             ],
 
             [
                 "Maximum Heart Rate",
-                patient.get("thalach", "")
+                str(patient.get("thalach", ""))
             ],
 
             [
                 "Exercise Angina",
-                patient.get("exang", "")
+                str(patient.get("exang", ""))
             ],
 
             [
                 "ST Depression",
-                patient.get("oldpeak", "")
+                str(patient.get("oldpeak", ""))
             ],
 
             [
                 "ST Segment Slope",
-                patient.get("slope", "")
+                str(patient.get("slope", ""))
             ],
 
             [
                 "Major Vessels",
-                patient.get("ca", "")
+                str(patient.get("ca", ""))
             ],
 
             [
                 "Thalassemia",
-                patient.get("thal", "")
+                str(patient.get("thal", ""))
             ]
-
         ])
-
 
     # ======================================
     # Diabetes Fields
@@ -213,72 +196,40 @@ def generate_report(patient, result, output_path):
 
         diabetes_labels = {
 
-            "age":
-                "Age",
-
-            "gender":
-                "Gender",
-
-            "polyuria":
-                "Polyuria",
-
-            "polydipsia":
-                "Polydipsia",
-
-            "sudden_weight_loss":
-                "Sudden Weight Loss",
-
-            "weakness":
-                "Weakness",
-
-            "polyphagia":
-                "Polyphagia",
-
-            "genital_thrush":
-                "Genital Thrush",
-
-            "visual_blurring":
-                "Visual Blurring",
-
-            "itching":
-                "Itching",
-
-            "irritability":
-                "Irritability",
-
-            "delayed_healing":
-                "Delayed Healing",
-
-            "partial_paresis":
-                "Partial Paresis",
-
-            "muscle_stiffness":
-                "Muscle Stiffness",
-
-            "alopecia":
-                "Alopecia",
-
-            "obesity":
-                "Obesity"
+            "age": "Age",
+            "gender": "Gender",
+            "polyuria": "Polyuria",
+            "polydipsia": "Polydipsia",
+            "sudden_weight_loss": "Sudden Weight Loss",
+            "weakness": "Weakness",
+            "polyphagia": "Polyphagia",
+            "genital_thrush": "Genital Thrush",
+            "visual_blurring": "Visual Blurring",
+            "itching": "Itching",
+            "irritability": "Irritability",
+            "delayed_healing": "Delayed Healing",
+            "partial_paresis": "Partial Paresis",
+            "muscle_stiffness": "Muscle Stiffness",
+            "alopecia": "Alopecia",
+            "obesity": "Obesity"
 
         }
-
 
         for key, label in diabetes_labels.items():
 
             patient_data.append([
-
                 label,
-
-                patient.get(key, "")
-
+                str(patient.get(key, ""))
             ])
 
     # ======================================
     # CKD Fields
     # ======================================
 
-    elif str(patient.get("disease", "")).lower() in ["ckd", "chronic kidney disease"]:
+    elif str(patient.get("disease", "")).lower() in [
+        "ckd",
+        "chronic kidney disease"
+    ]:
 
         ckd_labels = {
 
@@ -312,19 +263,78 @@ def generate_report(patient, result, output_path):
         for key, label in ckd_labels.items():
 
             patient_data.append([
-
                 label,
-
-                patient.get(key, "")
-
+                str(patient.get(key, ""))
             ])
 
     # ======================================
-    # Patient Table
+    # Stroke Fields
+    # ======================================
+
+    elif str(patient.get("disease", "")).lower() == "stroke":
+
+        stroke_labels = {
+
+            "age": "Age",
+
+            "gender": "Gender",
+
+            "hypertension": "Hypertension",
+
+            "heart_disease": "Heart Disease",
+
+            "ever_married": "Ever Married",
+
+            "work_type": "Work Type",
+
+            "Residence_type": "Residence Type",
+
+            "avg_glucose_level": "Average Glucose Level",
+
+            "bmi": "Body Mass Index (BMI)",
+
+            "smoking_status": "Smoking Status"
+
+        }
+
+        for key, label in stroke_labels.items():
+
+            value = patient.get(key, "")
+
+            # Format numerical values nicely
+            if key == "avg_glucose_level":
+                try:
+                    value = f"{float(value):.2f}"
+                except:
+                    pass
+
+            elif key == "bmi":
+                try:
+                    value = f"{float(value):.1f}"
+                except:
+                    pass
+
+            elif key in ["hypertension", "heart_disease"]:
+
+                if str(value) == "1":
+                    value = "Yes"
+
+                elif str(value) == "0":
+                    value = "No"
+
+            patient_data.append([
+                label,
+                str(value)
+            ])
+
+    # ======================================
+    # Patient Information Table
     # ======================================
 
     patient_table = Table(
-        patient_data
+        patient_data,
+        colWidths=[2.6 * inch, 3.8 * inch],
+        repeatRows=1
     )
 
     patient_table.setStyle(
@@ -334,195 +344,8 @@ def generate_report(patient, result, output_path):
                 "GRID",
                 (0, 0),
                 (-1, -1),
-                1,
+                0.8,
                 colors.grey
-            ),
-
-            (
-                "BACKGROUND",
-                (0, 0),
-                (0, -1),
-                colors.lightblue
-            ),
-
-            (
-                "FONTNAME",
-                (0, 0),
-                (-1, -1),
-                "Helvetica"
-            ),
-
-            (
-                "BOTTOMPADDING",
-                (0, 0),
-                (-1, -1),
-                8
-            )
-
-        ])
-    )
-
-    story.append(
-        patient_table
-    )
-
-    story.append(
-        Spacer(
-            1,
-            0.3 * inch
-        )
-    )
-
-
-    # ======================================
-    # Prediction Result
-    # ======================================
-
-    story.append(
-        Paragraph(
-            "Prediction Result",
-            heading_style
-        )
-    )
-
-
-    prediction_table = Table([
-
-        [
-            "Prediction",
-            result["prediction"]
-        ],
-
-        [
-            "Probability",
-            f"{result['probability']} %"
-        ],
-
-        [
-            "Risk Level",
-            result["risk_level"]
-        ]
-
-    ])
-
-
-    prediction_table.setStyle(
-        TableStyle([
-
-            (
-                "GRID",
-                (0, 0),
-                (-1, -1),
-                1,
-                colors.grey
-            ),
-
-            (
-                "BACKGROUND",
-                (0, 0),
-                (0, -1),
-                colors.lightgreen
-            ),
-
-            (
-                "BOTTOMPADDING",
-                (0, 0),
-                (-1, -1),
-                8
-            )
-
-        ])
-    )
-
-
-    story.append(
-        prediction_table
-    )
-
-    story.append(
-        Spacer(
-            1,
-            0.3 * inch
-        )
-    )
-
-
-    # ======================================
-    # Recommendation
-    # ======================================
-
-    story.append(
-        Paragraph(
-            "Clinical Recommendation",
-            heading_style
-        )
-    )
-
-    story.append(
-        Paragraph(
-            result["recommendation"],
-            normal_style
-        )
-    )
-
-    story.append(
-        Spacer(
-            1,
-            0.3 * inch
-        )
-    )
-
-
-    # ======================================
-    # SHAP Explanation
-    # ======================================
-
-    story.append(
-        Paragraph(
-            "Top Influencing Features (SHAP)",
-            heading_style
-        )
-    )
-
-
-    feature_data = [
-        ["Feature", "Impact"]
-    ]
-
-
-    for feature in result.get(
-        "top_features",
-        []
-    ):
-
-        feature_data.append([
-
-            feature["feature"],
-
-            str(
-                round(
-                    feature["impact"],
-                    4
-                )
-            )
-
-        ])
-
-
-    feature_table = Table(
-        feature_data
-    )
-
-
-    feature_table.setStyle(
-        TableStyle([
-
-            (
-                "GRID",
-                (0, 0),
-                (-1, -1),
-                1,
-                colors.black
             ),
 
             (
@@ -540,6 +363,289 @@ def generate_report(patient, result, output_path):
             ),
 
             (
+                "FONTNAME",
+                (0, 0),
+                (-1, 0),
+                "Helvetica-Bold"
+            ),
+
+            (
+                "BACKGROUND",
+                (0, 1),
+                (0, -1),
+                colors.lightblue
+            ),
+
+            (
+                "FONTNAME",
+                (0, 1),
+                (0, -1),
+                "Helvetica-Bold"
+            ),
+
+            (
+                "FONTNAME",
+                (1, 1),
+                (1, -1),
+                "Helvetica"
+            ),
+
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "MIDDLE"
+            ),
+
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                8
+            ),
+
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                8
+            ),
+
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                7
+            ),
+
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                7
+            )
+
+        ])
+    )
+
+    story.append(patient_table)
+
+    story.append(
+        Spacer(1, 0.3 * inch)
+    )
+
+    # ======================================
+    # Prediction Result
+    # ======================================
+
+    story.append(
+        Paragraph(
+            "Prediction Result",
+            heading_style
+        )
+    )
+
+    prediction_table = Table(
+        [
+            ["Field", "Result"],
+
+            [
+                "Prediction",
+                str(result.get("prediction", ""))
+            ],
+
+            [
+                "Probability",
+                f"{result.get('probability', '')} %"
+            ],
+
+            [
+                "Risk Level",
+                str(result.get("risk_level", ""))
+            ],
+
+            [
+                "Prediction Class",
+                str(result.get("prediction_class", ""))
+            ]
+
+        ],
+        colWidths=[2.6 * inch, 3.8 * inch]
+    )
+
+    prediction_table.setStyle(
+        TableStyle([
+
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                0.8,
+                colors.grey
+            ),
+
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, 0),
+                colors.darkgreen
+            ),
+
+            (
+                "TEXTCOLOR",
+                (0, 0),
+                (-1, 0),
+                colors.white
+            ),
+
+            (
+                "FONTNAME",
+                (0, 0),
+                (-1, 0),
+                "Helvetica-Bold"
+            ),
+
+            (
+                "BACKGROUND",
+                (0, 1),
+                (0, -1),
+                colors.lightgreen
+            ),
+
+            (
+                "FONTNAME",
+                (0, 1),
+                (0, -1),
+                "Helvetica-Bold"
+            ),
+
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "MIDDLE"
+            ),
+
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                8
+            ),
+
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                8
+            ),
+
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                7
+            ),
+
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                7
+            )
+
+        ])
+    )
+
+    story.append(prediction_table)
+
+    story.append(
+        Spacer(1, 0.3 * inch)
+    )
+
+    # ======================================
+    # Clinical Recommendation
+    # ======================================
+
+    story.append(
+        Paragraph(
+            "Clinical Recommendation",
+            heading_style
+        )
+    )
+
+    story.append(
+        Paragraph(
+            str(result.get("recommendation", "")),
+            normal_style
+        )
+    )
+
+    story.append(
+        Spacer(1, 0.3 * inch)
+    )
+
+    # ======================================
+    # SHAP Explanation
+    # ======================================
+
+    story.append(
+        Paragraph(
+            "Top Influencing Features (SHAP)",
+            heading_style
+        )
+    )
+
+    shap_data = [
+        ["Feature", "Impact"]
+    ]
+
+    for feature in result.get("top_features", []):
+
+        shap_data.append([
+            str(feature.get("feature", "")),
+            str(round(float(feature.get("impact", 0)), 4))
+        ])
+
+    shap_table = Table(
+        shap_data,
+        colWidths=[4.8 * inch, 1.6 * inch],
+        repeatRows=1
+    )
+
+    shap_table.setStyle(
+        TableStyle([
+
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                0.8,
+                colors.grey
+            ),
+
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, 0),
+                colors.darkblue
+            ),
+
+            (
+                "TEXTCOLOR",
+                (0, 0),
+                (-1, 0),
+                colors.white
+            ),
+
+            (
+                "FONTNAME",
+                (0, 0),
+                (-1, 0),
+                "Helvetica-Bold"
+            ),
+
+            (
                 "BACKGROUND",
                 (0, 1),
                 (-1, -1),
@@ -547,27 +653,55 @@ def generate_report(patient, result, output_path):
             ),
 
             (
-                "BOTTOMPADDING",
+                "ALIGN",
+                (1, 1),
+                (1, -1),
+                "CENTER"
+            ),
+
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "MIDDLE"
+            ),
+
+            (
+                "LEFTPADDING",
                 (0, 0),
                 (-1, -1),
                 8
+            ),
+
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                8
+            ),
+
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                7
+            ),
+
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                7
             )
 
         ])
     )
 
+    story.append(shap_table)
 
     story.append(
-        feature_table
+        Spacer(1, 0.35 * inch)
     )
-
-    story.append(
-        Spacer(
-            1,
-            0.4 * inch
-        )
-    )
-
 
     # ======================================
     # LIME Explanation
@@ -580,34 +714,37 @@ def generate_report(patient, result, output_path):
         )
     )
 
+    story.append(
+        Paragraph(
+            "Local Interpretable Model-Agnostic Explanation "
+            "(LIME) showing the most influential conditions "
+            "used by the model for this prediction.",
+            normal_style
+        )
+    )
+
+    story.append(
+        Spacer(1, 0.15 * inch)
+    )
 
     lime_data = [
         ["Feature", "Impact"]
     ]
 
+    for feature in result.get("lime_features", []):
 
-    if "lime_features" in result:
+        lime_data.append([
+            str(feature.get("feature", "")),
+            str(round(float(feature.get("impact", 0)), 4))
+        ])
 
-        for feature in result["lime_features"]:
-
-            lime_data.append([
-
-                feature["feature"],
-
-                str(
-                    round(
-                        feature["impact"],
-                        4
-                    )
-                )
-
-            ])
-
+    if len(lime_data) > 1:
 
         lime_table = Table(
-            lime_data
+            lime_data,
+            colWidths=[4.8 * inch, 1.6 * inch],
+            repeatRows=1
         )
-
 
         lime_table.setStyle(
             TableStyle([
@@ -616,8 +753,8 @@ def generate_report(patient, result, output_path):
                     "GRID",
                     (0, 0),
                     (-1, -1),
-                    1,
-                    colors.black
+                    0.8,
+                    colors.grey
                 ),
 
                 (
@@ -635,6 +772,13 @@ def generate_report(patient, result, output_path):
                 ),
 
                 (
+                    "FONTNAME",
+                    (0, 0),
+                    (-1, 0),
+                    "Helvetica-Bold"
+                ),
+
+                (
                     "BACKGROUND",
                     (0, 1),
                     (-1, -1),
@@ -642,20 +786,51 @@ def generate_report(patient, result, output_path):
                 ),
 
                 (
-                    "BOTTOMPADDING",
+                    "ALIGN",
+                    (1, 1),
+                    (1, -1),
+                    "CENTER"
+                ),
+
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "MIDDLE"
+                ),
+
+                (
+                    "LEFTPADDING",
                     (0, 0),
                     (-1, -1),
                     8
+                ),
+
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    8
+                ),
+
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7
+                ),
+
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7
                 )
 
             ])
         )
 
-
-        story.append(
-            lime_table
-        )
-
+        story.append(lime_table)
 
     else:
 
@@ -667,14 +842,9 @@ def generate_report(patient, result, output_path):
             )
         )
 
-
     story.append(
-        Spacer(
-            1,
-            0.4 * inch
-        )
+        Spacer(1, 0.4 * inch)
     )
-
 
     # ======================================
     # Footer
@@ -695,48 +865,38 @@ def generate_report(patient, result, output_path):
         )
     )
 
-
     # ======================================
     # Signatures
     # ======================================
 
     story.append(
-        Spacer(
-            1,
-            0.4 * inch
-        )
+        Spacer(1, 0.4 * inch)
     )
 
     story.append(
         Paragraph(
             "<b>Doctor Signature:</b> "
-            "__________________________",
+            "______________________________",
             normal_style
         )
     )
 
     story.append(
-        Spacer(
-            1,
-            0.2 * inch
-        )
+        Spacer(1, 0.2 * inch)
     )
 
     story.append(
         Paragraph(
             "<b>Patient Signature:</b> "
-            "__________________________",
+            "______________________________",
             normal_style
         )
     )
-
 
     # ======================================
     # Build PDF
     # ======================================
 
-    document.build(
-        story
-    )
+    document.build(story)
 
     return output_path

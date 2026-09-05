@@ -7,7 +7,12 @@ from model_loader import (
     diabetes_model,
     diabetes_scaler,
     ckd_model,
-    ckd_scaler
+    ckd_scaler,
+    stroke_model,
+    stroke_scaler,
+    stroke_imputer,
+    stroke_feature_names,
+    stroke_threshold
 )
 
 
@@ -40,6 +45,24 @@ CKD_FEATURES = [
     "appet",
     "pe",
     "ane"
+]
+
+
+# =========================
+# Stroke Raw Feature Names
+# =========================
+
+STROKE_FEATURES = [
+    "gender",
+    "age",
+    "hypertension",
+    "heart_disease",
+    "ever_married",
+    "work_type",
+    "Residence_type",
+    "avg_glucose_level",
+    "bmi",
+    "smoking_status"
 ]
 
 
@@ -171,6 +194,128 @@ def predict_ckd(patient_data):
 
 
 # =========================
+# Stroke Prediction
+# =========================
+
+def predict_stroke(patient_data):
+
+    # -------------------------
+    # Create raw patient DataFrame
+    # -------------------------
+
+    patient = pd.DataFrame(
+        [patient_data],
+        columns=STROKE_FEATURES
+    )
+
+    # -------------------------
+    # Numerical columns
+    # -------------------------
+
+    numerical_columns = [
+        "age",
+        "hypertension",
+        "heart_disease",
+        "avg_glucose_level",
+        "bmi"
+    ]
+
+    # Convert numerical values
+    for column in numerical_columns:
+        patient[column] = pd.to_numeric(
+            patient[column],
+            errors="coerce"
+        )
+
+    # -------------------------
+    # Impute numerical values
+    # -------------------------
+
+    patient[numerical_columns] = stroke_imputer.transform(
+        patient[numerical_columns]
+    )
+
+    # -------------------------
+    # Categorical columns
+    # -------------------------
+
+    categorical_columns = [
+        "gender",
+        "ever_married",
+        "work_type",
+        "Residence_type",
+        "smoking_status"
+    ]
+
+    # -------------------------
+    # One-hot encoding
+    # -------------------------
+
+    patient_encoded = pd.get_dummies(
+        patient,
+        columns=categorical_columns,
+        drop_first=False
+    )
+
+    # -------------------------
+    # Match training features
+    # -------------------------
+
+    patient_encoded = patient_encoded.reindex(
+        columns=stroke_feature_names,
+        fill_value=0
+    )
+
+    # Make sure exact feature order is used
+    patient_encoded = patient_encoded[
+        stroke_feature_names
+    ]
+
+    # -------------------------
+    # Standard Scaling
+    # -------------------------
+
+    patient_scaled = stroke_scaler.transform(
+        patient_encoded
+    )
+
+    # -------------------------
+    # Stroke Probability
+    # -------------------------
+
+    probability = float(
+        stroke_model.predict_proba(
+            patient_scaled
+        )[0][1]
+    )
+
+    # -------------------------
+    # Apply selected threshold
+    # -------------------------
+
+    prediction = int(
+        probability >= stroke_threshold
+    )
+
+    disease = (
+        "No Stroke"
+        if prediction == 0
+        else "Stroke"
+    )
+
+    confidence = round(
+        probability * 100,
+        2
+    )
+
+    return {
+        "prediction_class": prediction,
+        "prediction": disease,
+        "probability": confidence
+    }
+
+
+# =========================
 # General Prediction
 # =========================
 
@@ -185,6 +330,12 @@ def predict(patient_data, disease="heart"):
     elif disease == "ckd":
 
         return predict_ckd(
+            patient_data
+        )
+
+    elif disease == "stroke":
+
+        return predict_stroke(
             patient_data
         )
 

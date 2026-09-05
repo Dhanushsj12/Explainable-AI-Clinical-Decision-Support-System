@@ -7,10 +7,17 @@ from lime.lime_tabular import LimeTabularExplainer
 from model_loader import (
     heart_model,
     heart_scaler,
+
     diabetes_model,
     diabetes_scaler,
+
     ckd_model,
-    ckd_scaler
+    ckd_scaler,
+
+    stroke_model,
+    stroke_scaler,
+    stroke_imputer,
+    stroke_feature_names
 )
 
 
@@ -144,15 +151,194 @@ ckd_explainer = LimeTabularExplainer(
 
 
 # ==========================================
+# Stroke LIME
+# ==========================================
+
+stroke_x_train_path = os.path.join(
+    BASE_DIR,
+    "datasets",
+    "processed",
+    "stroke",
+    "x_train.csv"
+)
+
+stroke_X_train_scaled = pd.read_csv(
+    stroke_x_train_path
+)
+
+stroke_X_train_scaled = (
+    stroke_X_train_scaled.values
+)
+
+
+stroke_explainer = LimeTabularExplainer(
+
+    training_data=stroke_X_train_scaled,
+
+    feature_names=stroke_feature_names,
+
+    class_names=[
+        "No Stroke",
+        "Stroke"
+    ],
+
+    mode="classification",
+
+    random_state=42
+)
+
+
+# ==========================================
+# Stroke Preprocessing
+# ==========================================
+
+STROKE_NUMERIC_FEATURES = [
+    "age",
+    "hypertension",
+    "heart_disease",
+    "avg_glucose_level",
+    "bmi"
+]
+
+
+STROKE_CATEGORICAL_FEATURES = [
+    "gender",
+    "ever_married",
+    "work_type",
+    "Residence_type",
+    "smoking_status"
+]
+
+
+STROKE_RAW_FEATURES = [
+    "gender",
+    "age",
+    "hypertension",
+    "heart_disease",
+    "ever_married",
+    "work_type",
+    "Residence_type",
+    "avg_glucose_level",
+    "bmi",
+    "smoking_status"
+]
+
+
+def preprocess_stroke_for_lime(features):
+
+    # --------------------------------------
+    # Support dictionary input
+    # --------------------------------------
+
+    if isinstance(features, dict):
+
+        features = [
+            features[column]
+            for column in STROKE_RAW_FEATURES
+        ]
+
+    # --------------------------------------
+    # Validate feature count
+    # --------------------------------------
+
+    if len(features) != 10:
+
+        raise ValueError(
+            "Stroke requires exactly 10 features"
+        )
+
+    # --------------------------------------
+    # Create DataFrame
+    # --------------------------------------
+
+    patient_df = pd.DataFrame(
+        [features],
+        columns=STROKE_RAW_FEATURES
+    )
+
+    # --------------------------------------
+    # Numeric conversion
+    # --------------------------------------
+
+    for column in STROKE_NUMERIC_FEATURES:
+
+        patient_df[column] = pd.to_numeric(
+            patient_df[column],
+            errors="coerce"
+        )
+
+    # --------------------------------------
+    # Impute numerical values
+    # --------------------------------------
+
+    patient_df[
+        STROKE_NUMERIC_FEATURES
+    ] = stroke_imputer.transform(
+        patient_df[
+            STROKE_NUMERIC_FEATURES
+        ]
+    )
+
+    # --------------------------------------
+    # One-hot encode categorical values
+    # --------------------------------------
+
+    categorical_df = pd.get_dummies(
+        patient_df[
+            STROKE_CATEGORICAL_FEATURES
+        ],
+        drop_first=False
+    )
+
+    # --------------------------------------
+    # Combine numerical + categorical
+    # --------------------------------------
+
+    numerical_df = patient_df[
+        STROKE_NUMERIC_FEATURES
+    ]
+
+    processed_df = pd.concat(
+        [
+            numerical_df,
+            categorical_df
+        ],
+        axis=1
+    )
+
+    # --------------------------------------
+    # Match training feature order
+    # --------------------------------------
+
+    processed_df = processed_df.reindex(
+        columns=stroke_feature_names,
+        fill_value=0
+    )
+
+    # --------------------------------------
+    # Convert to float
+    # --------------------------------------
+
+    processed_df = processed_df.astype(
+        float
+    )
+
+    # --------------------------------------
+    # Scale using training scaler
+    # --------------------------------------
+
+    patient_scaled = stroke_scaler.transform(
+        processed_df
+    )
+
+    return patient_scaled
+
+
+# ==========================================
 # LIME Function
 # ==========================================
 
 def lime_explain(features, disease="heart"):
-
-    patient = np.array(
-        features
-    ).reshape(1, -1)
-
 
     # ======================================
     # Heart Disease
@@ -160,17 +346,25 @@ def lime_explain(features, disease="heart"):
 
     if disease == "heart":
 
-        patient_scaled = heart_scaler.transform(
-            patient
+        patient = np.array(
+            features
+        ).reshape(1, -1)
+
+        patient_scaled = (
+            heart_scaler.transform(
+                patient
+            )
         )
 
-        explanation = heart_explainer.explain_instance(
+        explanation = (
+            heart_explainer.explain_instance(
 
-            patient_scaled[0],
+                patient_scaled[0],
 
-            heart_model.predict_proba,
+                heart_model.predict_proba,
 
-            num_features=5
+                num_features=5
+            )
         )
 
 
@@ -180,17 +374,25 @@ def lime_explain(features, disease="heart"):
 
     elif disease == "diabetes":
 
-        patient_scaled = diabetes_scaler.transform(
-            patient
+        patient = np.array(
+            features
+        ).reshape(1, -1)
+
+        patient_scaled = (
+            diabetes_scaler.transform(
+                patient
+            )
         )
 
-        explanation = diabetes_explainer.explain_instance(
+        explanation = (
+            diabetes_explainer.explain_instance(
 
-            patient_scaled[0],
+                patient_scaled[0],
 
-            diabetes_model.predict_proba,
+                diabetes_model.predict_proba,
 
-            num_features=5
+                num_features=5
+            )
         )
 
 
@@ -200,17 +402,49 @@ def lime_explain(features, disease="heart"):
 
     elif disease == "ckd":
 
-        patient_scaled = ckd_scaler.transform(
-            patient
+        patient = np.array(
+            features
+        ).reshape(1, -1)
+
+        patient_scaled = (
+            ckd_scaler.transform(
+                patient
+            )
         )
 
-        explanation = ckd_explainer.explain_instance(
+        explanation = (
+            ckd_explainer.explain_instance(
 
-            patient_scaled[0],
+                patient_scaled[0],
 
-            ckd_model.predict_proba,
+                ckd_model.predict_proba,
 
-            num_features=5
+                num_features=5
+            )
+        )
+
+
+    # ======================================
+    # Stroke
+    # ======================================
+
+    elif disease == "stroke":
+
+        patient_scaled = (
+            preprocess_stroke_for_lime(
+                features
+            )
+        )
+
+        explanation = (
+            stroke_explainer.explain_instance(
+
+                patient_scaled[0],
+
+                stroke_model.predict_proba,
+
+                num_features=5
+            )
         )
 
 
@@ -231,7 +465,9 @@ def lime_explain(features, disease="heart"):
 
     result = []
 
-    for feature, weight in explanation.as_list():
+    for feature, weight in (
+        explanation.as_list()
+    ):
 
         result.append({
 

@@ -56,11 +56,55 @@ ckd_model = joblib.load(CKD_MODEL_PATH)
 ckd_scaler = joblib.load(CKD_SCALER_PATH)
 
 
+# =========================
+# Stroke
+# =========================
+
+STROKE_MODEL_DIR = os.path.join(
+    MODEL_DIR, "stroke"
+)
+
+STROKE_MODEL_PATH = os.path.join(
+    STROKE_MODEL_DIR, "best_model.pkl"
+)
+
+STROKE_SCALER_PATH = os.path.join(
+    STROKE_MODEL_DIR, "scaler.pkl"
+)
+
+STROKE_IMPUTER_PATH = os.path.join(
+    STROKE_MODEL_DIR, "imputer.pkl"
+)
+
+STROKE_FEATURE_NAMES_PATH = os.path.join(
+    STROKE_MODEL_DIR, "feature_names.pkl"
+)
+
+STROKE_THRESHOLD_PATH = os.path.join(
+    STROKE_MODEL_DIR, "threshold.pkl"
+)
+
+stroke_model = joblib.load(STROKE_MODEL_PATH)
+stroke_scaler = joblib.load(STROKE_SCALER_PATH)
+stroke_imputer = joblib.load(STROKE_IMPUTER_PATH)
+stroke_feature_names = joblib.load(STROKE_FEATURE_NAMES_PATH)
+stroke_threshold = joblib.load(STROKE_THRESHOLD_PATH)
+
+
+# =========================
 # Backward compatibility
+# =========================
+
 model = heart_model
 scaler = heart_scaler
 
 
+# =========================
+# Load confirmation
+# =========================
+
 print("Heart Disease Model Loaded Successfully")
 print("Diabetes Model Loaded Successfully")
 print("CKD Model Loaded Successfully")
+print("Stroke Model Loaded Successfully")
+print(f"Stroke Threshold: {stroke_threshold}")

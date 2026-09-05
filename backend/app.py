@@ -294,6 +294,68 @@ def build_ckd_patient_data(data, features):
 
 
 # ==========================================
+# Build Stroke Patient Data
+# ==========================================
+
+def build_stroke_patient_data(data, features):
+
+    stroke_features = [
+        "gender",
+        "age",
+        "hypertension",
+        "heart_disease",
+        "ever_married",
+        "work_type",
+        "Residence_type",
+        "avg_glucose_level",
+        "bmi",
+        "smoking_status"
+    ]
+
+    patient = {
+
+        "patient_id":
+            data.get("patient_id", ""),
+
+        "patient_name":
+            data.get("patient_name", ""),
+
+        "doctor_name":
+            data.get("doctor_name", ""),
+
+        "hospital_name":
+            data.get("hospital_name", ""),
+
+        "disease":
+            "Stroke"
+    }
+
+    # Handle dictionary input from API
+    if isinstance(features, dict):
+
+        for feature_name in stroke_features:
+
+            if feature_name not in features:
+
+                raise ValueError(
+                    f"Missing stroke feature: {feature_name}"
+                )
+
+            patient[feature_name] = features[feature_name]
+
+    # Handle list input
+    else:
+
+        for index, feature_name in enumerate(
+            stroke_features
+        ):
+
+            patient[feature_name] = features[index]
+
+    return patient
+
+
+# ==========================================
 # Build Patient Data
 # ==========================================
 
@@ -309,6 +371,13 @@ def build_patient_data(data, features, disease):
     elif disease == "ckd":
 
         return build_ckd_patient_data(
+            data,
+            features
+        )
+
+    elif disease == "stroke":
+
+        return build_stroke_patient_data(
             data,
             features
         )
@@ -343,7 +412,9 @@ def home():
 
             "diabetes",
 
-            "ckd"
+            "ckd",
+
+            "stroke"
 
         ]
 
@@ -379,13 +450,14 @@ def prediction():
     if disease not in [
         "heart",
         "diabetes",
-        "ckd"
+        "ckd",
+        "stroke"
     ]:
 
         return jsonify({
 
             "error":
-                "Unsupported disease. Use 'heart', 'diabetes', or 'ckd'."
+                "Unsupported disease. Use 'heart', 'diabetes', 'ckd', or 'stroke'."
 
         }), 400
 
@@ -417,7 +489,9 @@ def prediction():
 
         "diabetes": 16,
 
-        "ckd": 24
+        "ckd": 24,
+
+        "stroke": 10
 
     }
 
@@ -558,7 +632,8 @@ def report():
     if disease not in [
         "heart",
         "diabetes",
-        "ckd"
+        "ckd",
+        "stroke"
     ]:
 
         return jsonify({
@@ -586,13 +661,19 @@ def report():
     features = data["features"]
 
 
+    # ======================================
+    # Expected Feature Count
+    # ======================================
+
     expected_features = {
 
         "heart": 13,
 
         "diabetes": 16,
 
-        "ckd": 24
+        "ckd": 24,
+
+        "stroke": 10
 
     }
 

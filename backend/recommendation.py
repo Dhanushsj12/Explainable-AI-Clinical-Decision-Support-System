@@ -94,6 +94,37 @@ def recommendation(prediction, probability, disease="heart"):
 
 
     # ==========================================
+    # Stroke
+    # ==========================================
+
+    elif disease == "stroke":
+
+        if prediction == 0:
+
+            return {
+                "risk": "Low",
+                "recommendation":
+                "No significant indication of stroke was detected by the model. Maintain a healthy lifestyle, monitor blood pressure and blood sugar, exercise regularly, and continue routine health check-ups."
+            }
+
+        elif probability < 70:
+
+            return {
+                "risk": "Moderate",
+                "recommendation":
+                "The prediction indicates some factors associated with stroke risk. Consultation with a healthcare professional and further clinical evaluation are recommended."
+            }
+
+        else:
+
+            return {
+                "risk": "High",
+                "recommendation":
+                "The model indicates a higher likelihood of stroke risk. Prompt consultation with a healthcare professional is strongly recommended for further clinical evaluation and appropriate diagnostic assessment."
+            }
+
+
+    # ==========================================
     # Unsupported Disease
     # ==========================================
 

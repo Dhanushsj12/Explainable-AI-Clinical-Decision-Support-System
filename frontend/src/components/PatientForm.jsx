@@ -6,17 +6,27 @@ import PatientSummary from "./PatientSummary";
 
 function PatientForm() {
 
+    // ==========================================
+    // DISEASE
+    // ==========================================
+
     const [disease, setDisease] = useState("heart");
 
-    const [formData, setFormData] = useState({
+    // ==========================================
+    // INITIAL FORM DATA
+    // ==========================================
+
+    const initialFormData = {
+
         patient_id: "",
         patient_name: "",
         doctor_name: "",
         hospital_name: "",
 
-        // =========================
-        // Heart Disease
-        // =========================
+        // ==========================================
+        // HEART DISEASE
+        // ==========================================
+
         age: "",
         sex: "1",
         cp: "1",
@@ -31,9 +41,10 @@ function PatientForm() {
         ca: "0",
         thal: "3",
 
-        // =========================
-        // Diabetes
-        // =========================
+        // ==========================================
+        // DIABETES
+        // ==========================================
+
         gender: "1",
         polyuria: "0",
         polydipsia: "0",
@@ -50,9 +61,10 @@ function PatientForm() {
         alopecia: "0",
         obesity: "0",
 
-        // =========================
+        // ==========================================
         // CKD
-        // =========================
+        // ==========================================
+
         bp: "",
         sg: "",
         al: "0",
@@ -75,10 +87,28 @@ function PatientForm() {
         cad: "0",
         appet: "0",
         pe: "0",
-        ane: "0"
-    });
+        ane: "0",
+
+        // ==========================================
+        // STROKE
+        // ==========================================
+
+        stroke_gender: "Male",
+        stroke_age: "",
+        hypertension: "0",
+        heart_disease: "0",
+        ever_married: "Yes",
+        work_type: "Private",
+        Residence_type: "Urban",
+        avg_glucose_level: "",
+        bmi: "",
+        smoking_status: "never smoked"
+    };
+
+    const [formData, setFormData] = useState(initialFormData);
 
     const [result, setResult] = useState(null);
+
     const [loading, setLoading] = useState(false);
 
 
@@ -553,39 +583,234 @@ function PatientForm() {
 
 
     // ==========================================
-    // CURRENT FIELDS
+    // STROKE FIELDS
     // ==========================================
 
-    const fields =
-        disease === "heart"
-            ? heartFields
-            : disease === "diabetes"
-                ? diabetesFields
-                : ckdFields;
+    const strokeFields = [
+
+        {
+            name: "stroke_gender",
+            label: "Gender",
+            type: "select",
+            options: [
+                { value: "Male", label: "Male" },
+                { value: "Female", label: "Female" },
+                { value: "Other", label: "Other" }
+            ]
+        },
+
+        {
+            name: "stroke_age",
+            label: "Age",
+            type: "number"
+        },
+
+        {
+            name: "hypertension",
+            label: "Hypertension",
+            options: [
+                { value: "1", label: "Yes" },
+                { value: "0", label: "No" }
+            ]
+        },
+
+        {
+            name: "heart_disease",
+            label: "Heart Disease",
+            options: [
+                { value: "1", label: "Yes" },
+                { value: "0", label: "No" }
+            ]
+        },
+
+        {
+            name: "ever_married",
+            label: "Ever Married",
+            options: [
+                { value: "Yes", label: "Yes" },
+                { value: "No", label: "No" }
+            ]
+        },
+
+        {
+            name: "work_type",
+            label: "Work Type",
+            options: [
+                { value: "Private", label: "Private" },
+                { value: "Self-employed", label: "Self-employed" },
+                { value: "Govt_job", label: "Government Job" },
+                { value: "children", label: "Children" },
+                { value: "Never_worked", label: "Never Worked" }
+            ]
+        },
+
+        {
+            name: "Residence_type",
+            label: "Residence Type",
+            options: [
+                { value: "Urban", label: "Urban" },
+                { value: "Rural", label: "Rural" }
+            ]
+        },
+
+        {
+            name: "avg_glucose_level",
+            label: "Average Glucose Level",
+            type: "number",
+            step: "0.01"
+        },
+
+        {
+            name: "bmi",
+            label: "Body Mass Index (BMI)",
+            type: "number",
+            step: "0.1"
+        },
+
+        {
+            name: "smoking_status",
+            label: "Smoking Status",
+            options: [
+                {
+                    value: "never smoked",
+                    label: "Never Smoked"
+                },
+                {
+                    value: "formerly smoked",
+                    label: "Formerly Smoked"
+                },
+                {
+                    value: "smokes",
+                    label: "Currently Smokes"
+                },
+                {
+                    value: "Unknown",
+                    label: "Unknown"
+                }
+            ]
+        }
+
+    ];
 
 
     // ==========================================
-    // HANDLE CHANGE
+    // GET CURRENT DISEASE FIELDS
     // ==========================================
 
-    const handleChange = (e) => {
+    const getCurrentFields = () => {
 
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        switch (disease) {
+
+            case "heart":
+                return heartFields;
+
+            case "diabetes":
+                return diabetesFields;
+
+            case "ckd":
+                return ckdFields;
+
+            case "stroke":
+                return strokeFields;
+
+            default:
+                return heartFields;
+        }
+
+    };
+
+    const fields = getCurrentFields();
+
+
+    // ==========================================
+    // DISEASE DISPLAY NAME
+    // ==========================================
+
+    const getDiseaseName = () => {
+
+        switch (disease) {
+
+            case "heart":
+                return "Heart Disease";
+
+            case "diabetes":
+                return "Diabetes";
+
+            case "ckd":
+                return "Chronic Kidney Disease";
+
+            case "stroke":
+                return "Stroke";
+
+            default:
+                return "Clinical Condition";
+        }
+
+    };
+
+    const diseaseName = getDiseaseName();
+
+
+    // ==========================================
+    // CLINICAL SECTION TITLE
+    // ==========================================
+
+    const getClinicalTitle = () => {
+
+        switch (disease) {
+
+            case "heart":
+                return "Heart Disease Clinical Features";
+
+            case "diabetes":
+                return "Diabetes Clinical Features";
+
+            case "ckd":
+                return "Chronic Kidney Disease Clinical Features";
+
+            case "stroke":
+                return "Stroke Clinical Features";
+
+            default:
+                return "Clinical Features";
+        }
 
     };
 
 
     // ==========================================
-    // DISEASE CHANGE
+    // HANDLE INPUT CHANGE
+    // ==========================================
+
+    const handleChange = (e) => {
+
+        const {
+            name,
+            value
+        } = e.target;
+
+        setFormData((previousData) => ({
+
+            ...previousData,
+
+            [name]: value
+
+        }));
+
+    };
+
+
+    // ==========================================
+    // HANDLE DISEASE CHANGE
     // ==========================================
 
     const handleDiseaseChange = (e) => {
 
-        setDisease(e.target.value);
+        const selectedDisease = e.target.value;
 
+        setDisease(selectedDisease);
+
+        // Remove previous prediction result
         setResult(null);
 
     };
@@ -596,6 +821,10 @@ function PatientForm() {
     // ==========================================
 
     const buildFeatures = () => {
+
+        // ==========================================
+        // HEART
+        // ==========================================
 
         if (disease === "heart") {
 
@@ -618,6 +847,11 @@ function PatientForm() {
             ];
 
         }
+
+
+        // ==========================================
+        // DIABETES
+        // ==========================================
 
         if (disease === "diabetes") {
 
@@ -644,41 +878,88 @@ function PatientForm() {
 
         }
 
-        // CKD - 24 features
-        return [
 
-            Number(formData.age),
-            Number(formData.bp),
-            Number(formData.sg),
-            Number(formData.al),
-            Number(formData.su),
-            Number(formData.rbc),
-            Number(formData.pc),
-            Number(formData.pcc),
-            Number(formData.ba),
-            Number(formData.bgr),
-            Number(formData.bu),
-            Number(formData.sc),
-            Number(formData.sod),
-            Number(formData.pot),
-            Number(formData.hemo),
-            Number(formData.pcv),
-            Number(formData.wbcc),
-            Number(formData.rbcc),
-            Number(formData.htn),
-            Number(formData.dm),
-            Number(formData.cad),
-            Number(formData.appet),
-            Number(formData.pe),
-            Number(formData.ane)
+        // ==========================================
+        // CKD
+        // ==========================================
 
-        ];
+        if (disease === "ckd") {
+
+            return [
+
+                Number(formData.age),
+                Number(formData.bp),
+                Number(formData.sg),
+                Number(formData.al),
+                Number(formData.su),
+                Number(formData.rbc),
+                Number(formData.pc),
+                Number(formData.pcc),
+                Number(formData.ba),
+                Number(formData.bgr),
+                Number(formData.bu),
+                Number(formData.sc),
+                Number(formData.sod),
+                Number(formData.pot),
+                Number(formData.hemo),
+                Number(formData.pcv),
+                Number(formData.wbcc),
+                Number(formData.rbcc),
+                Number(formData.htn),
+                Number(formData.dm),
+                Number(formData.cad),
+                Number(formData.appet),
+                Number(formData.pe),
+                Number(formData.ane)
+
+            ];
+
+        }
+
+
+        // ==========================================
+        // STROKE
+        // ==========================================
+
+        if (disease === "stroke") {
+
+            return {
+
+                gender: formData.stroke_gender,
+
+                age: Number(formData.stroke_age),
+
+                hypertension: Number(formData.hypertension),
+
+                heart_disease: Number(formData.heart_disease),
+
+                ever_married: formData.ever_married,
+
+                work_type: formData.work_type,
+
+                Residence_type: formData.Residence_type,
+
+                avg_glucose_level:
+                    Number(formData.avg_glucose_level),
+
+                bmi:
+                    Number(formData.bmi),
+
+                smoking_status:
+                    formData.smoking_status
+
+            };
+
+        }
+
+
+        return [];
 
     };
 
 
     // ==========================================
-    // SUBMIT
+    // SUBMIT FORM
     // ==========================================
 
     const handleSubmit = async (e) => {
@@ -686,30 +967,35 @@ function PatientForm() {
         e.preventDefault();
 
         setResult(null);
-        setLoading(true);
 
-        const features = buildFeatures();
+        setLoading(true);
 
         try {
 
+            const features = buildFeatures();
+
             const requestData = {
 
-                disease,
+                disease: disease,
 
-                features,
+                features: features,
 
-                patient_id: formData.patient_id,
+                patient_id:
+                    formData.patient_id,
 
-                patient_name: formData.patient_name,
+                patient_name:
+                    formData.patient_name,
 
-                doctor_name: formData.doctor_name,
+                doctor_name:
+                    formData.doctor_name,
 
-                hospital_name: formData.hospital_name
+                hospital_name:
+                    formData.hospital_name
 
             };
 
             console.log(
-                "Sending to backend:",
+                "Sending prediction request:",
                 requestData
             );
 
@@ -718,24 +1004,41 @@ function PatientForm() {
                 requestData
             );
 
+            console.log(
+                "Prediction response:",
+                response.data
+            );
+
             setResult(response.data);
 
         }
 
         catch (error) {
 
-            console.error(error);
+            console.error(
+                "Prediction error:",
+                error
+            );
 
             if (error.response) {
 
                 alert(
-                    `Prediction Failed\nStatus: ${error.response.status}\n${JSON.stringify(error.response.data)}`
+                    `Prediction Failed\n\n` +
+                    `Status: ${error.response.status}\n\n` +
+                    `${JSON.stringify(
+                        error.response.data,
+                        null,
+                        2
+                    )}`
                 );
 
-            } else {
+            }
+
+            else {
 
                 alert(
-                    "Cannot connect to Flask backend."
+                    "Cannot connect to Flask backend.\n\n" +
+                    "Please make sure the backend server is running."
                 );
 
             }
@@ -752,75 +1055,13 @@ function PatientForm() {
 
 
     // ==========================================
-    // RESET
+    // RESET FORM
     // ==========================================
 
     const clearForm = () => {
 
         setFormData({
-
-            patient_id: "",
-            patient_name: "",
-            doctor_name: "",
-            hospital_name: "",
-
-            // Heart
-            age: "",
-            sex: "1",
-            cp: "1",
-            trestbps: "",
-            chol: "",
-            fbs: "0",
-            restecg: "0",
-            thalach: "",
-            exang: "0",
-            oldpeak: "",
-            slope: "2",
-            ca: "0",
-            thal: "3",
-
-            // Diabetes
-            gender: "1",
-            polyuria: "0",
-            polydipsia: "0",
-            sudden_weight_loss: "0",
-            weakness: "0",
-            polyphagia: "0",
-            genital_thrush: "0",
-            visual_blurring: "0",
-            itching: "0",
-            irritability: "0",
-            delayed_healing: "0",
-            partial_paresis: "0",
-            muscle_stiffness: "0",
-            alopecia: "0",
-            obesity: "0",
-
-            // CKD
-            bp: "",
-            sg: "",
-            al: "0",
-            su: "0",
-            rbc: "0",
-            pc: "0",
-            pcc: "0",
-            ba: "0",
-            bgr: "",
-            bu: "",
-            sc: "",
-            sod: "",
-            pot: "",
-            hemo: "",
-            pcv: "",
-            wbcc: "",
-            rbcc: "",
-            htn: "0",
-            dm: "0",
-            cad: "0",
-            appet: "0",
-            pe: "0",
-            ane: "0"
-
+            ...initialFormData
         });
 
         setResult(null);
@@ -829,47 +1070,61 @@ function PatientForm() {
 
 
     // ==========================================
-    // DOWNLOAD REPORT
+    // DOWNLOAD CLINICAL REPORT
     // ==========================================
 
     const downloadReport = async () => {
 
-        const features = buildFeatures();
-
         try {
+
+            const features = buildFeatures();
+
+            const requestData = {
+
+                disease: disease,
+
+                features: features,
+
+                patient_id:
+                    formData.patient_id,
+
+                patient_name:
+                    formData.patient_name,
+
+                doctor_name:
+                    formData.doctor_name,
+
+                hospital_name:
+                    formData.hospital_name
+
+            };
+
+            console.log(
+                "Sending report request:",
+                requestData
+            );
 
             const response = await API.post(
 
                 "/report",
 
-                {
-
-                    disease,
-
-                    features,
-
-                    patient_id: formData.patient_id,
-
-                    patient_name: formData.patient_name,
-
-                    doctor_name: formData.doctor_name,
-
-                    hospital_name: formData.hospital_name
-
-                },
+                requestData,
 
                 {
-
                     responseType: "blob"
-
                 }
 
             );
 
+            const blob = new Blob(
+                [response.data],
+                {
+                    type: "application/pdf"
+                }
+            );
+
             const url =
-                window.URL.createObjectURL(
-                    new Blob([response.data])
-                );
+                window.URL.createObjectURL(blob);
 
             const link =
                 document.createElement("a");
@@ -883,7 +1138,7 @@ function PatientForm() {
 
             link.click();
 
-            link.remove();
+            document.body.removeChild(link);
 
             window.URL.revokeObjectURL(url);
 
@@ -891,10 +1146,13 @@ function PatientForm() {
 
         catch (error) {
 
-            console.error(error);
+            console.error(
+                "Report generation error:",
+                error
+            );
 
             alert(
-                "Unable to download report."
+                "Unable to download clinical report."
             );
 
         }
@@ -903,20 +1161,16 @@ function PatientForm() {
 
 
     // ==========================================
-    // DISPLAY LABEL
+    // RENDER
     // ==========================================
-
-    const diseaseName =
-        disease === "heart"
-            ? "Heart Disease"
-            : disease === "diabetes"
-                ? "Diabetes"
-                : "Chronic Kidney Disease";
-
 
     return (
 
         <div className="container mt-5 mb-5">
+
+            {/* ==========================================
+                MAIN FORM CARD
+            ========================================== */}
 
             <div className="card shadow-lg border-0">
 
@@ -941,7 +1195,9 @@ function PatientForm() {
 
                 <div className="card-body p-4">
 
-                    {/* DISEASE SELECTOR */}
+                    {/* ==========================================
+                        DISEASE SELECTOR
+                    ========================================== */}
 
                     <div className="mb-4">
 
@@ -969,16 +1225,32 @@ function PatientForm() {
                                 Chronic Kidney Disease
                             </option>
 
+                            <option value="stroke">
+                                Stroke
+                            </option>
+
                         </select>
 
                     </div>
 
 
+                    {/* ==========================================
+                        FORM
+                    ========================================== */}
+
                     <form onSubmit={handleSubmit}>
 
-                        {/* PATIENT DETAILS */}
+                        {/* ==========================================
+                            PATIENT DETAILS
+                        ========================================== */}
+
+                        <h5 className="mb-3">
+                            Patient Details
+                        </h5>
 
                         <div className="row">
+
+                            {/* Patient ID */}
 
                             <div className="col-md-6 mb-3">
 
@@ -990,7 +1262,9 @@ function PatientForm() {
                                     type="text"
                                     className="form-control"
                                     name="patient_id"
-                                    value={formData.patient_id}
+                                    value={
+                                        formData.patient_id
+                                    }
                                     onChange={handleChange}
                                     placeholder="Enter Patient ID"
                                     required
@@ -998,6 +1272,8 @@ function PatientForm() {
 
                             </div>
 
+
+                            {/* Patient Name */}
 
                             <div className="col-md-6 mb-3">
 
@@ -1009,7 +1285,9 @@ function PatientForm() {
                                     type="text"
                                     className="form-control"
                                     name="patient_name"
-                                    value={formData.patient_name}
+                                    value={
+                                        formData.patient_name
+                                    }
                                     onChange={handleChange}
                                     placeholder="Enter Patient Name"
                                     required
@@ -1017,6 +1295,8 @@ function PatientForm() {
 
                             </div>
 
+
+                            {/* Doctor */}
 
                             <div className="col-md-6 mb-3">
 
@@ -1028,7 +1308,9 @@ function PatientForm() {
                                     type="text"
                                     className="form-control"
                                     name="doctor_name"
-                                    value={formData.doctor_name}
+                                    value={
+                                        formData.doctor_name
+                                    }
                                     onChange={handleChange}
                                     placeholder="Enter Doctor Name"
                                     required
@@ -1036,6 +1318,8 @@ function PatientForm() {
 
                             </div>
 
+
+                            {/* Hospital */}
 
                             <div className="col-md-6 mb-3">
 
@@ -1047,7 +1331,9 @@ function PatientForm() {
                                     type="text"
                                     className="form-control"
                                     name="hospital_name"
-                                    value={formData.hospital_name}
+                                    value={
+                                        formData.hospital_name
+                                    }
                                     onChange={handleChange}
                                     placeholder="Enter Hospital Name"
                                     required
@@ -1061,15 +1347,13 @@ function PatientForm() {
                         <hr />
 
 
-                        {/* DISEASE FIELDS */}
+                        {/* ==========================================
+                            CLINICAL FEATURES
+                        ========================================== */}
 
                         <h5 className="mb-3">
 
-                            {disease === "heart"
-                                ? "Heart Disease Clinical Features"
-                                : disease === "diabetes"
-                                    ? "Diabetes Clinical Features"
-                                    : "Chronic Kidney Disease Clinical Features"}
+                            {getClinicalTitle()}
 
                         </h5>
 
@@ -1090,15 +1374,21 @@ function PatientForm() {
                                     </label>
 
 
+                                    {/* SELECT FIELD */}
+
                                     {field.options ? (
 
                                         <select
                                             className="form-select"
                                             name={field.name}
                                             value={
-                                                formData[field.name]
+                                                formData[
+                                                    field.name
+                                                ]
                                             }
-                                            onChange={handleChange}
+                                            onChange={
+                                                handleChange
+                                            }
                                             required
                                         >
 
@@ -1106,11 +1396,17 @@ function PatientForm() {
                                                 (option) => (
 
                                                     <option
-                                                        key={option.value}
-                                                        value={option.value}
+                                                        key={
+                                                            option.value
+                                                        }
+                                                        value={
+                                                            option.value
+                                                        }
                                                     >
 
-                                                        {option.label}
+                                                        {
+                                                            option.label
+                                                        }
 
                                                     </option>
 
@@ -1121,22 +1417,30 @@ function PatientForm() {
 
                                     ) : (
 
+                                        /* NUMBER / TEXT FIELD */
+
                                         <input
                                             type={
-                                                field.type || "number"
+                                                field.type ||
+                                                "number"
                                             }
                                             className="form-control"
                                             name={field.name}
                                             value={
-                                                formData[field.name]
+                                                formData[
+                                                    field.name
+                                                ]
                                             }
-                                            onChange={handleChange}
+                                            onChange={
+                                                handleChange
+                                            }
                                             placeholder={
                                                 `Enter ${field.label}`
                                             }
                                             min="0"
                                             step={
-                                                field.step || "any"
+                                                field.step ||
+                                                "any"
                                             }
                                             required
                                         />
@@ -1150,9 +1454,13 @@ function PatientForm() {
                         </div>
 
 
-                        {/* BUTTONS */}
+                        {/* ==========================================
+                            BUTTONS
+                        ========================================== */}
 
                         <div className="d-flex gap-3 mt-3">
+
+                            {/* PREDICT */}
 
                             <button
                                 type="submit"
@@ -1183,6 +1491,8 @@ function PatientForm() {
                             </button>
 
 
+                            {/* RESET */}
+
                             <button
                                 type="button"
                                 className="btn btn-outline-secondary btn-lg flex-fill"
@@ -1202,16 +1512,23 @@ function PatientForm() {
             </div>
 
 
-            {/* RESULTS */}
+            {/* ==========================================
+                RESULT SECTION
+            ========================================== */}
 
             {result && (
 
                 <>
 
+                    {/* PATIENT SUMMARY */}
+
                     <PatientSummary
                         formData={formData}
                         disease={disease}
                     />
+
+
+                    {/* DOWNLOAD REPORT */}
 
                     <div className="text-center mt-4 mb-4">
 
@@ -1231,15 +1548,27 @@ function PatientForm() {
             )}
 
 
+            {/* ==========================================
+                PREDICTION CARD
+            ========================================== */}
+
             <PredictionCard
                 result={result}
                 disease={disease}
             />
 
 
+            {/* ==========================================
+                EXPLAINABILITY
+            ========================================== */}
+
             <FeatureImportance
-                features={result?.top_features}
-                limeFeatures={result?.lime_features}
+                features={
+                    result?.top_features
+                }
+                limeFeatures={
+                    result?.lime_features
+                }
             />
 
         </div>
