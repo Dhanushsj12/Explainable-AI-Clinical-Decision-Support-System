@@ -330,7 +330,10 @@ def build_stroke_patient_data(data, features):
             "Stroke"
     }
 
+    # ======================================
     # Handle dictionary input from API
+    # ======================================
+
     if isinstance(features, dict):
 
         for feature_name in stroke_features:
@@ -343,7 +346,10 @@ def build_stroke_patient_data(data, features):
 
             patient[feature_name] = features[feature_name]
 
+    # ======================================
     # Handle list input
+    # ======================================
+
     else:
 
         for index, feature_name in enumerate(
@@ -719,13 +725,36 @@ def report():
     # LIME
     # ======================================
 
-    lime = lime_explain(
+    # If the frontend already has the LIME
+    # explanation from /predict, use exactly
+    # the same explanation for the PDF.
+    #
+    # This prevents the PDF from generating
+    # a different LIME result for the same
+    # patient.
 
-        features,
+    if "lime_features" in data and data["lime_features"]:
 
-        disease
+        lime = data["lime_features"]
 
-    )
+        print(
+            "Using LIME explanation received from frontend."
+        )
+
+    else:
+
+        lime = lime_explain(
+
+            features,
+
+            disease
+
+        )
+
+        print(
+            "LIME explanation not received from frontend. "
+            "Generating a new explanation."
+        )
 
 
     # ======================================

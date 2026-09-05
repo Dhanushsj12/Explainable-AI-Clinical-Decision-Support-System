@@ -3,6 +3,14 @@ import API from "../services/api";
 import PredictionCard from "./PredictionCard";
 import FeatureImportance from "./FeatureImportance";
 import PatientSummary from "./PatientSummary";
+import {
+    IconHeart,
+    IconDroplet,
+    IconKidney,
+    IconBrain,
+    IconDownload,
+    IconRefresh
+} from "./icons";
 
 function PatientForm() {
 
@@ -11,6 +19,13 @@ function PatientForm() {
     // ==========================================
 
     const [disease, setDisease] = useState("heart");
+
+    const diseaseTabs = [
+        { value: "heart", label: "Heart Disease", icon: IconHeart },
+        { value: "diabetes", label: "Diabetes", icon: IconDroplet },
+        { value: "ckd", label: "Chronic Kidney Disease", icon: IconKidney },
+        { value: "stroke", label: "Stroke", icon: IconBrain }
+    ];
 
     // ==========================================
     // INITIAL FORM DATA
@@ -118,11 +133,7 @@ function PatientForm() {
 
     const heartFields = [
 
-        {
-            name: "age",
-            label: "Age",
-            type: "number"
-        },
+        { name: "age", label: "Age", type: "number" },
 
         {
             name: "sex",
@@ -784,17 +795,11 @@ function PatientForm() {
 
     const handleChange = (e) => {
 
-        const {
-            name,
-            value
-        } = e.target;
+        const { name, value } = e.target;
 
         setFormData((previousData) => ({
-
             ...previousData,
-
             [name]: value
-
         }));
 
     };
@@ -810,7 +815,6 @@ function PatientForm() {
 
         setDisease(selectedDisease);
 
-        // Remove previous prediction result
         setResult(null);
 
     };
@@ -829,7 +833,6 @@ function PatientForm() {
         if (disease === "heart") {
 
             return [
-
                 Number(formData.age),
                 Number(formData.sex),
                 Number(formData.cp),
@@ -843,7 +846,6 @@ function PatientForm() {
                 Number(formData.slope),
                 Number(formData.ca),
                 Number(formData.thal)
-
             ];
 
         }
@@ -856,7 +858,6 @@ function PatientForm() {
         if (disease === "diabetes") {
 
             return [
-
                 Number(formData.age),
                 Number(formData.gender),
                 Number(formData.polyuria),
@@ -873,7 +874,6 @@ function PatientForm() {
                 Number(formData.muscle_stiffness),
                 Number(formData.alopecia),
                 Number(formData.obesity)
-
             ];
 
         }
@@ -886,7 +886,6 @@ function PatientForm() {
         if (disease === "ckd") {
 
             return [
-
                 Number(formData.age),
                 Number(formData.bp),
                 Number(formData.sg),
@@ -911,7 +910,6 @@ function PatientForm() {
                 Number(formData.appet),
                 Number(formData.pe),
                 Number(formData.ane)
-
             ];
 
         }
@@ -924,30 +922,16 @@ function PatientForm() {
         if (disease === "stroke") {
 
             return {
-
                 gender: formData.stroke_gender,
-
                 age: Number(formData.stroke_age),
-
                 hypertension: Number(formData.hypertension),
-
                 heart_disease: Number(formData.heart_disease),
-
                 ever_married: formData.ever_married,
-
                 work_type: formData.work_type,
-
                 Residence_type: formData.Residence_type,
-
-                avg_glucose_level:
-                    Number(formData.avg_glucose_level),
-
-                bmi:
-                    Number(formData.bmi),
-
-                smoking_status:
-                    formData.smoking_status
-
+                avg_glucose_level: Number(formData.avg_glucose_level),
+                bmi: Number(formData.bmi),
+                smoking_status: formData.smoking_status
             };
 
         }
@@ -975,23 +959,12 @@ function PatientForm() {
             const features = buildFeatures();
 
             const requestData = {
-
                 disease: disease,
-
                 features: features,
-
-                patient_id:
-                    formData.patient_id,
-
-                patient_name:
-                    formData.patient_name,
-
-                doctor_name:
-                    formData.doctor_name,
-
-                hospital_name:
-                    formData.hospital_name
-
+                patient_id: formData.patient_id,
+                patient_name: formData.patient_name,
+                doctor_name: formData.doctor_name,
+                hospital_name: formData.hospital_name
             };
 
             console.log(
@@ -1079,24 +1052,24 @@ function PatientForm() {
 
             const features = buildFeatures();
 
+            // ==========================================
+            // IMPORTANT:
+            // Send the SAME LIME explanation that was
+            // already generated during /predict.
+            //
+            // This prevents /report from generating
+            // another random/different LIME explanation.
+            // ==========================================
+
             const requestData = {
-
                 disease: disease,
-
                 features: features,
+                patient_id: formData.patient_id,
+                patient_name: formData.patient_name,
+                doctor_name: formData.doctor_name,
+                hospital_name: formData.hospital_name,
 
-                patient_id:
-                    formData.patient_id,
-
-                patient_name:
-                    formData.patient_name,
-
-                doctor_name:
-                    formData.doctor_name,
-
-                hospital_name:
-                    formData.hospital_name
-
+                lime_features: result?.lime_features || []
             };
 
             console.log(
@@ -1104,16 +1077,17 @@ function PatientForm() {
                 requestData
             );
 
+            console.log(
+                "Using existing LIME explanation:",
+                result?.lime_features
+            );
+
             const response = await API.post(
-
                 "/report",
-
                 requestData,
-
                 {
                     responseType: "blob"
                 }
-
             );
 
             const blob = new Blob(
@@ -1166,229 +1140,195 @@ function PatientForm() {
 
     return (
 
-        <div className="container mt-5 mb-5">
+        <div className="wrap mt-24">
 
-            {/* ==========================================
-                MAIN FORM CARD
-            ========================================== */}
+            <div className="panel">
 
-            <div className="card shadow-lg border-0">
+                <div className="panel-header">
 
-                {/* HEADER */}
+                    <div className="icon-badge">
+                        <IconHeart size={17} />
+                    </div>
 
-                <div className="card-header bg-primary text-white py-4">
+                    <div>
 
-                    <h3 className="mb-1">
+                        <div className="panel-title">
+                            Assessment Console
+                        </div>
 
-                        🩺 {diseaseName} Prediction
+                        <div className="panel-title-sub">
+                            Select one condition · enter observed clinical parameters · run inference
+                        </div>
 
-                    </h3>
-
-                    <small>
-
-                        Enter the patient's clinical information
-
-                    </small>
+                    </div>
 
                 </div>
 
 
-                <div className="card-body p-4">
+                <div className="tabs">
 
-                    {/* ==========================================
-                        DISEASE SELECTOR
-                    ========================================== */}
+                    {diseaseTabs.map((tab) => {
 
-                    <div className="mb-4">
+                        const Icon = tab.icon;
 
-                        <label className="form-label fw-bold">
+                        return (
 
-                            Select Disease
+                            <button
+                                key={tab.value}
+                                type="button"
+                                className={`tab ${
+                                    disease === tab.value
+                                        ? "active"
+                                        : ""
+                                }`}
+                                onClick={() =>
+                                    handleDiseaseChange({
+                                        target: {
+                                            value: tab.value
+                                        }
+                                    })
+                                }
+                            >
 
-                        </label>
+                                <Icon size={16} />
 
-                        <select
-                            className="form-select form-select-lg"
-                            value={disease}
-                            onChange={handleDiseaseChange}
-                        >
+                                {tab.label}
 
-                            <option value="heart">
-                                Heart Disease
-                            </option>
+                            </button>
 
-                            <option value="diabetes">
-                                Diabetes
-                            </option>
+                        );
 
-                            <option value="ckd">
-                                Chronic Kidney Disease
-                            </option>
+                    })}
 
-                            <option value="stroke">
-                                Stroke
-                            </option>
-
-                        </select>
-
-                    </div>
+                </div>
 
 
-                    {/* ==========================================
-                        FORM
-                    ========================================== */}
+                <form onSubmit={handleSubmit}>
 
-                    <form onSubmit={handleSubmit}>
+                    <div className="section-block">
 
-                        {/* ==========================================
-                            PATIENT DETAILS
-                        ========================================== */}
+                        <div className="section-heading">
 
-                        <h5 className="mb-3">
-                            Patient Details
-                        </h5>
+                            <span className="section-marker"></span>
 
-                        <div className="row">
+                            <h3>
+                                01 · Patient Identification
+                            </h3>
 
-                            {/* Patient ID */}
-
-                            <div className="col-md-6 mb-3">
-
-                                <label className="form-label fw-bold">
-                                    Patient ID
-                                </label>
-
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="patient_id"
-                                    value={
-                                        formData.patient_id
-                                    }
-                                    onChange={handleChange}
-                                    placeholder="Enter Patient ID"
-                                    required
-                                />
-
-                            </div>
-
-
-                            {/* Patient Name */}
-
-                            <div className="col-md-6 mb-3">
-
-                                <label className="form-label fw-bold">
-                                    Patient Name
-                                </label>
-
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="patient_name"
-                                    value={
-                                        formData.patient_name
-                                    }
-                                    onChange={handleChange}
-                                    placeholder="Enter Patient Name"
-                                    required
-                                />
-
-                            </div>
-
-
-                            {/* Doctor */}
-
-                            <div className="col-md-6 mb-3">
-
-                                <label className="form-label fw-bold">
-                                    Doctor Name
-                                </label>
-
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="doctor_name"
-                                    value={
-                                        formData.doctor_name
-                                    }
-                                    onChange={handleChange}
-                                    placeholder="Enter Doctor Name"
-                                    required
-                                />
-
-                            </div>
-
-
-                            {/* Hospital */}
-
-                            <div className="col-md-6 mb-3">
-
-                                <label className="form-label fw-bold">
-                                    Hospital Name
-                                </label>
-
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="hospital_name"
-                                    value={
-                                        formData.hospital_name
-                                    }
-                                    onChange={handleChange}
-                                    placeholder="Enter Hospital Name"
-                                    required
-                                />
-
-                            </div>
+                            <span className="section-index">
+                                REQUIRED
+                            </span>
 
                         </div>
 
 
-                        <hr />
+                        <div className="field-grid">
+
+                            {[
+                                [
+                                    "patient_id",
+                                    "Patient ID",
+                                    "text",
+                                    "Enter patient ID"
+                                ],
+                                [
+                                    "patient_name",
+                                    "Patient Name",
+                                    "text",
+                                    "Enter patient name"
+                                ],
+                                [
+                                    "doctor_name",
+                                    "Doctor Name",
+                                    "text",
+                                    "Enter clinician name"
+                                ],
+                                [
+                                    "hospital_name",
+                                    "Hospital / Clinic",
+                                    "text",
+                                    "Enter facility name"
+                                ]
+                            ].map(
+                                ([
+                                    name,
+                                    label,
+                                    type,
+                                    placeholder
+                                ]) => (
+
+                                    <div
+                                        className="field"
+                                        key={name}
+                                    >
+
+                                        <label className="field-label">
+                                            {label}
+                                        </label>
+
+                                        <input
+                                            type={type}
+                                            name={name}
+                                            value={formData[name]}
+                                            onChange={handleChange}
+                                            placeholder={placeholder}
+                                            required
+                                        />
+
+                                    </div>
+
+                                )
+                            )}
+
+                        </div>
+
+                    </div>
 
 
-                        {/* ==========================================
-                            CLINICAL FEATURES
-                        ========================================== */}
+                    <div className="section-block">
 
-                        <h5 className="mb-3">
+                        <div className="section-heading">
 
-                            {getClinicalTitle()}
+                            <span className="section-marker"></span>
 
-                        </h5>
+                            <h3>
+                                02 · {getClinicalTitle()}
+                            </h3>
+
+                            <span className="section-index">
+
+                                {fields.length
+                                    .toString()
+                                    .padStart(2, "0")}{" "}
+                                PARAMETERS
+
+                            </span>
+
+                        </div>
 
 
-                        <div className="row">
+                        <div className="field-grid">
 
                             {fields.map((field) => (
 
                                 <div
                                     key={field.name}
-                                    className="col-md-6 mb-3"
+                                    className="field"
                                 >
 
-                                    <label className="form-label fw-bold">
-
+                                    <label className="field-label">
                                         {field.label}
-
                                     </label>
 
-
-                                    {/* SELECT FIELD */}
 
                                     {field.options ? (
 
                                         <select
-                                            className="form-select"
                                             name={field.name}
                                             value={
-                                                formData[
-                                                    field.name
-                                                ]
+                                                formData[field.name]
                                             }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            onChange={handleChange}
                                             required
                                         >
 
@@ -1403,11 +1343,7 @@ function PatientForm() {
                                                             option.value
                                                         }
                                                     >
-
-                                                        {
-                                                            option.label
-                                                        }
-
+                                                        {option.label}
                                                     </option>
 
                                                 )
@@ -1417,23 +1353,16 @@ function PatientForm() {
 
                                     ) : (
 
-                                        /* NUMBER / TEXT FIELD */
-
                                         <input
                                             type={
                                                 field.type ||
                                                 "number"
                                             }
-                                            className="form-control"
                                             name={field.name}
                                             value={
-                                                formData[
-                                                    field.name
-                                                ]
+                                                formData[field.name]
                                             }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            onChange={handleChange}
                                             placeholder={
                                                 `Enter ${field.label}`
                                             }
@@ -1453,91 +1382,73 @@ function PatientForm() {
 
                         </div>
 
-
-                        {/* ==========================================
-                            BUTTONS
-                        ========================================== */}
-
-                        <div className="d-flex gap-3 mt-3">
-
-                            {/* PREDICT */}
-
-                            <button
-                                type="submit"
-                                className="btn btn-primary btn-lg flex-fill"
-                                disabled={loading}
-                            >
-
-                                {loading ? (
-
-                                    <>
-
-                                        <span
-                                            className="spinner-border spinner-border-sm me-2"
-                                            role="status"
-                                            aria-hidden="true"
-                                        ></span>
-
-                                        Predicting...
-
-                                    </>
-
-                                ) : (
-
-                                    `Predict ${diseaseName}`
-
-                                )}
-
-                            </button>
+                    </div>
 
 
-                            {/* RESET */}
+                    <div className="btn-row">
 
-                            <button
-                                type="button"
-                                className="btn btn-outline-secondary btn-lg flex-fill"
-                                onClick={clearForm}
-                            >
+                        <button
+                            type="submit"
+                            className="btn btn-primary btn-block"
+                            disabled={loading}
+                        >
 
-                                🔄 Reset
+                            {loading ? (
 
-                            </button>
+                                <>
+                                    <span className="spinner"></span>
+                                    Running Model
+                                </>
 
-                        </div>
+                            ) : (
 
-                    </form>
+                                <>
+                                    ⚡ Run {diseaseName} Assessment
+                                </>
 
-                </div>
+                            )}
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            className="btn btn-outline btn-block"
+                            onClick={clearForm}
+                        >
+
+                            <IconRefresh size={15} />
+
+                            Clear Case
+
+                        </button>
+
+                    </div>
+
+                </form>
 
             </div>
 
 
-            {/* ==========================================
-                RESULT SECTION
-            ========================================== */}
-
             {result && (
 
                 <>
-
-                    {/* PATIENT SUMMARY */}
 
                     <PatientSummary
                         formData={formData}
                         disease={disease}
                     />
 
-
-                    {/* DOWNLOAD REPORT */}
-
-                    <div className="text-center mt-4 mb-4">
+                    <div className="summary-actions">
 
                         <button
-                            className="btn btn-success btn-lg"
+                            className="btn btn-outline"
                             onClick={downloadReport}
                         >
 
-                            📄 Download Clinical Report
+                            <IconDownload size={16} />
+
+                            Export Clinical PDF
 
                         </button>
 
@@ -1548,27 +1459,15 @@ function PatientForm() {
             )}
 
 
-            {/* ==========================================
-                PREDICTION CARD
-            ========================================== */}
-
             <PredictionCard
                 result={result}
                 disease={disease}
             />
 
 
-            {/* ==========================================
-                EXPLAINABILITY
-            ========================================== */}
-
             <FeatureImportance
-                features={
-                    result?.top_features
-                }
-                limeFeatures={
-                    result?.lime_features
-                }
+                features={result?.top_features}
+                limeFeatures={result?.lime_features}
             />
 
         </div>

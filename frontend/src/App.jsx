@@ -1,9 +1,10 @@
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
-import PatientForm from "./components/PatientForm";
-import Footer from "./components/Footer";
 import Dashboard from "./components/Dashboard";
+import PatientForm from "./components/PatientForm";
 import History from "./components/History";
+import Footer from "./components/Footer";
+
 function App() {
 
     return (
@@ -12,11 +13,17 @@ function App() {
 
             <Navbar />
 
-            <Hero />
+            <main className="app-main">
 
-            <PatientForm />
+                <Hero />
 
-            <History />
+                <Dashboard />
+
+                <PatientForm />
+
+                <History />
+
+            </main>
 
             <Footer />
 
