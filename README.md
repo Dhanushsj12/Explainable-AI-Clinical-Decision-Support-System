@@ -1480,8 +1480,77 @@ Provides navigation throughout the application.
 
 Provides application information.
 
----
+# Authentication and Role-Based Access Control
 
+The system provides authentication and role-based access control for three user roles:
+
+- **Admin** – User management and system administration
+- **Doctor** – Clinical assessment, prediction, XAI explanations, patient history and reports
+- **Staff** – Clinical data entry, prediction and clinical reports
+
+## Signup
+
+New users can create an account through the signup page. New accounts are assigned the Staff role by default.
+
+![Signup](Screenshots/signup.png)
+
+## Admin Login
+
+![Admin Login](Screenshots/ADMINLOGIN.png)
+
+## Admin Dashboard
+
+![Admin Dashboard](Screenshots/ADMINDASHBOARD1.png)
+
+## Admin User Management
+
+Administrators can view registered users and manage their assigned roles.
+
+![Admin User Management](Screenshots/ADMINDASHBOARDUSERMANAGEMENT.png)
+
+## Doctor Login
+
+![Doctor Login](Screenshots/DOCTORLOGIN.png)
+
+## Doctor Dashboard
+
+Doctors can access clinical decision-support tools, disease prediction, explainable AI results and patient history.
+
+![Doctor Dashboard](Screenshots/DOCTORDASHBOARD.png)
+
+## Doctor Patient History
+
+Doctors can review previous clinical prediction records.
+
+![Doctor Patient History](Screenshots/DOCTORDASHBOARDPATIENTHISTORY.png)
+
+## Doctor Access Control
+
+Role-based access control restricts users to the features permitted for their assigned role.
+
+![Doctor Access Control](Screenshots/DOCTORACCESSIBILITY1.png)
+
+![Doctor Access Control](Screenshots/DOCTORACCESSIBILITY2.png)
+
+## Staff Login
+
+![Staff Login](Screenshots/STAFFLOGIN.png)
+
+## Staff Dashboard
+
+Staff users can access clinical data entry, prediction and report-related functionality.
+
+![Staff Dashboard](Screenshots/STAFFDASHBOARD.png)
+
+![Staff Dashboard](Screenshots/STAFFDASHBOARD1.png)
+
+## Staff Access Control
+
+Staff users are restricted from accessing functionality reserved for other roles.
+
+![Staff Access Control](Screenshots/STAFFACCESSIBILITY.png)
+
+![Staff Access Control](Screenshots/STAFFACCESSIBILITY1.png)
 # Database
 
 The system uses SQLite for prediction history.
