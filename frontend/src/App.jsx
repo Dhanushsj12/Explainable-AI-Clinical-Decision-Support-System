@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 import Login from "./auth/login";
 import Signup from "./auth/signup";
 import ProtectedRoute from "./auth/protectedroute";
+import { useAuth } from "./auth/authcontext";
 
 import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
@@ -24,6 +25,8 @@ import Unauthorized from "./pages/Unauthorized";
 
 function MainCDSS() {
 
+    const { user } = useAuth();
+
     return (
         <>
             <Navbar />
@@ -36,7 +39,14 @@ function MainCDSS() {
 
                 <PatientForm />
 
-                <History />
+                {/* =========================================
+                    HISTORY
+                    DOCTOR ONLY
+                ========================================== */}
+
+                {user?.role === "doctor" && (
+                    <History />
+                )}
 
             </main>
 
