@@ -1,5 +1,9 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+
+from auth import auth_bp, role_required
+from auth_database import initialize_auth_database
 
 from prediction import predict
 from explainability import explain
@@ -16,98 +20,184 @@ from database import (
 import os
 
 
-# ==========================================
-# Flask Application
-# ==========================================
+# =========================================================
+# FLASK APPLICATION
+# =========================================================
 
 app = Flask(__name__)
 
+
+# =========================================================
+# JWT CONFIGURATION
+# =========================================================
+
+app.config["JWT_SECRET_KEY"] = os.environ.get(
+    "JWT_SECRET_KEY",
+    "development-secret-change-this"
+)
+
+jwt = JWTManager(app)
+
+
+# =========================================================
+# CORS
+# =========================================================
+
 CORS(app)
 
+
+# =========================================================
+# DATABASE INITIALIZATION
+# =========================================================
+
 create_table()
+initialize_auth_database()
 
 
-# ==========================================
-# Build Heart Disease Patient Data
-# ==========================================
+# =========================================================
+# AUTHENTICATION BLUEPRINT
+# =========================================================
+
+app.register_blueprint(
+    auth_bp,
+    url_prefix="/auth"
+)
+
+
+# =========================================================
+# FEATURE COUNTS
+# =========================================================
+
+EXPECTED_FEATURES = {
+    "heart": 13,
+    "diabetes": 16,
+    "ckd": 24,
+    "stroke": 10
+}
+
+
+SUPPORTED_DISEASES = [
+    "heart",
+    "diabetes",
+    "ckd",
+    "stroke"
+]
+
+
+# =========================================================
+# STROKE FEATURE NAMES
+# =========================================================
+
+STROKE_FEATURES = [
+    "gender",
+    "age",
+    "hypertension",
+    "heart_disease",
+    "ever_married",
+    "work_type",
+    "Residence_type",
+    "avg_glucose_level",
+    "bmi",
+    "smoking_status"
+]
+
+
+# =========================================================
+# BUILD HEART DISEASE PATIENT DATA
+# =========================================================
 
 def build_heart_patient_data(data, features):
 
     return {
 
-        "patient_id": data.get("patient_id", ""),
+        "patient_id":
+            data.get("patient_id", ""),
 
-        "patient_name": data.get("patient_name", ""),
+        "patient_name":
+            data.get("patient_name", ""),
 
-        "doctor_name": data.get("doctor_name", ""),
+        "doctor_name":
+            data.get("doctor_name", ""),
 
-        "hospital_name": data.get("hospital_name", ""),
+        "hospital_name":
+            data.get("hospital_name", ""),
 
-        "disease": "Heart Disease",
+        "disease":
+            "Heart Disease",
 
-        "age": features[0],
+        "age":
+            features[0],
 
         "gender":
             "Male" if features[1] == 1 else "Female",
 
-        "cp": {
-            1: "Typical Angina",
-            2: "Atypical Angina",
-            3: "Non-anginal Pain",
-            4: "Asymptomatic"
-        }.get(
-            features[2],
-            str(features[2])
-        ),
+        "cp":
+            {
+                1: "Typical Angina",
+                2: "Atypical Angina",
+                3: "Non-anginal Pain",
+                4: "Asymptomatic"
+            }.get(
+                features[2],
+                str(features[2])
+            ),
 
-        "trestbps": features[3],
+        "trestbps":
+            features[3],
 
-        "chol": features[4],
+        "chol":
+            features[4],
 
         "fbs":
             "Yes" if features[5] == 1 else "No",
 
-        "restecg": {
-            0: "Normal",
-            1: "ST-T Wave Abnormality",
-            2: "Left Ventricular Hypertrophy"
-        }.get(
-            features[6],
-            str(features[6])
-        ),
+        "restecg":
+            {
+                0: "Normal",
+                1: "ST-T Wave Abnormality",
+                2: "Left Ventricular Hypertrophy"
+            }.get(
+                features[6],
+                str(features[6])
+            ),
 
-        "thalach": features[7],
+        "thalach":
+            features[7],
 
         "exang":
             "Yes" if features[8] == 1 else "No",
 
-        "oldpeak": features[9],
+        "oldpeak":
+            features[9],
 
-        "slope": {
-            1: "Upsloping",
-            2: "Flat",
-            3: "Downsloping"
-        }.get(
-            features[10],
-            str(features[10])
-        ),
+        "slope":
+            {
+                1: "Upsloping",
+                2: "Flat",
+                3: "Downsloping"
+            }.get(
+                features[10],
+                str(features[10])
+            ),
 
-        "ca": features[11],
+        "ca":
+            features[11],
 
-        "thal": {
-            3: "Normal",
-            6: "Fixed Defect",
-            7: "Reversible Defect"
-        }.get(
-            features[12],
-            str(features[12])
-        )
+        "thal":
+            {
+                3: "Normal",
+                6: "Fixed Defect",
+                7: "Reversible Defect"
+            }.get(
+                features[12],
+                str(features[12])
+            )
     }
 
 
-# ==========================================
-# Build Diabetes Patient Data
-# ==========================================
+# =========================================================
+# BUILD DIABETES PATIENT DATA
+# =========================================================
 
 def build_diabetes_patient_data(data, features):
 
@@ -148,10 +238,6 @@ def build_diabetes_patient_data(data, features):
             "Diabetes"
     }
 
-    # ======================================
-    # Convert Diabetes Features
-    # ======================================
-
     for index, feature_name in enumerate(
         diabetes_features
     ):
@@ -181,13 +267,14 @@ def build_diabetes_patient_data(data, features):
     return patient
 
 
-# ==========================================
-# Build CKD Patient Data
-# ==========================================
+# =========================================================
+# BUILD CKD PATIENT DATA
+# =========================================================
 
 def build_ckd_patient_data(data, features):
 
     ckd_features = [
+
         "age",
         "bp",
         "sg",
@@ -212,6 +299,7 @@ def build_ckd_patient_data(data, features):
         "appet",
         "pe",
         "ane"
+
     ]
 
     patient = {
@@ -232,9 +320,38 @@ def build_ckd_patient_data(data, features):
             "Chronic Kidney Disease"
     }
 
-    # ======================================
-    # CKD Feature Conversion
-    # ======================================
+    numeric_features = [
+
+        "age",
+        "bp",
+        "sg",
+        "al",
+        "su",
+        "bgr",
+        "bu",
+        "sc",
+        "sod",
+        "pot",
+        "hemo",
+        "pcv",
+        "wbcc",
+        "rbcc"
+
+    ]
+
+    yes_no_features = [
+
+        "rbc",
+        "pc",
+        "pcc",
+        "ba",
+        "htn",
+        "dm",
+        "cad",
+        "pe",
+        "ane"
+
+    ]
 
     for index, feature_name in enumerate(
         ckd_features
@@ -242,38 +359,11 @@ def build_ckd_patient_data(data, features):
 
         value = features[index]
 
-        # Numeric features
-        if feature_name in [
-            "age",
-            "bp",
-            "sg",
-            "al",
-            "su",
-            "bgr",
-            "bu",
-            "sc",
-            "sod",
-            "pot",
-            "hemo",
-            "pcv",
-            "wbcc",
-            "rbcc"
-        ]:
+        if feature_name in numeric_features:
 
             patient[feature_name] = value
 
-        # Binary categorical features
-        elif feature_name in [
-            "rbc",
-            "pc",
-            "pcc",
-            "ba",
-            "htn",
-            "dm",
-            "cad",
-            "pe",
-            "ane"
-        ]:
+        elif feature_name in yes_no_features:
 
             patient[feature_name] = (
                 "Yes"
@@ -281,7 +371,6 @@ def build_ckd_patient_data(data, features):
                 else "No"
             )
 
-        # Appetite
         elif feature_name == "appet":
 
             patient[feature_name] = (
@@ -293,24 +382,11 @@ def build_ckd_patient_data(data, features):
     return patient
 
 
-# ==========================================
-# Build Stroke Patient Data
-# ==========================================
+# =========================================================
+# BUILD STROKE PATIENT DATA
+# =========================================================
 
 def build_stroke_patient_data(data, features):
-
-    stroke_features = [
-        "gender",
-        "age",
-        "hypertension",
-        "heart_disease",
-        "ever_married",
-        "work_type",
-        "Residence_type",
-        "avg_glucose_level",
-        "bmi",
-        "smoking_status"
-    ]
 
     patient = {
 
@@ -330,13 +406,13 @@ def build_stroke_patient_data(data, features):
             "Stroke"
     }
 
-    # ======================================
-    # Handle dictionary input from API
-    # ======================================
+    # -----------------------------------------------------
+    # Frontend may send Stroke features as a dictionary
+    # -----------------------------------------------------
 
     if isinstance(features, dict):
 
-        for feature_name in stroke_features:
+        for feature_name in STROKE_FEATURES:
 
             if feature_name not in features:
 
@@ -344,28 +420,51 @@ def build_stroke_patient_data(data, features):
                     f"Missing stroke feature: {feature_name}"
                 )
 
-            patient[feature_name] = features[feature_name]
+            patient[feature_name] = features[
+                feature_name
+            ]
 
-    # ======================================
-    # Handle list input
-    # ======================================
+        return patient
 
-    else:
+    # -----------------------------------------------------
+    # Or frontend may send them as a list
+    # -----------------------------------------------------
+
+    if isinstance(features, (list, tuple)):
+
+        if len(features) != len(STROKE_FEATURES):
+
+            raise ValueError(
+                "Stroke requires "
+                f"{len(STROKE_FEATURES)} features."
+            )
 
         for index, feature_name in enumerate(
-            stroke_features
+            STROKE_FEATURES
         ):
 
             patient[feature_name] = features[index]
 
-    return patient
+        return patient
+
+    raise ValueError(
+        "Stroke features must be provided "
+        "as a dictionary or list."
+    )
 
 
-# ==========================================
-# Build Patient Data
-# ==========================================
+# =========================================================
+# BUILD PATIENT DATA
+# =========================================================
 
 def build_patient_data(data, features, disease):
+
+    if disease == "heart":
+
+        return build_heart_patient_data(
+            data,
+            features
+        )
 
     if disease == "diabetes":
 
@@ -374,31 +473,116 @@ def build_patient_data(data, features, disease):
             features
         )
 
-    elif disease == "ckd":
+    if disease == "ckd":
 
         return build_ckd_patient_data(
             data,
             features
         )
 
-    elif disease == "stroke":
+    if disease == "stroke":
 
         return build_stroke_patient_data(
             data,
             features
         )
 
-    return build_heart_patient_data(
-        data,
-        features
+    raise ValueError(
+        f"Unsupported disease: {disease}"
     )
 
 
-# ==========================================
-# Home
-# ==========================================
+# =========================================================
+# RECOMMENDATION HANDLER
+# =========================================================
 
-@app.route("/")
+def get_recommendation(
+    prediction_class,
+    probability,
+    disease
+):
+
+    # -----------------------------------------------------
+    # Existing recommendation.py handles:
+    # heart / diabetes / ckd
+    # -----------------------------------------------------
+
+    if disease != "stroke":
+
+        return recommendation(
+            prediction_class,
+            probability,
+            disease
+        )
+
+    # -----------------------------------------------------
+    # Stroke recommendation
+    # -----------------------------------------------------
+
+    if prediction_class == 1:
+
+        return {
+
+            "risk": "High",
+
+            "recommendation":
+                "The model indicates a higher likelihood "
+                "of stroke risk. Prompt consultation with "
+                "a healthcare professional is strongly "
+                "recommended for further clinical "
+                "evaluation and appropriate diagnostic "
+                "assessment."
+
+        }
+
+    return {
+
+        "risk": "Low",
+
+        "recommendation":
+            "The model indicates a lower likelihood "
+            "of stroke risk. This result should still "
+            "be interpreted together with clinical "
+            "assessment and professional judgement."
+
+    }
+
+
+# =========================================================
+# LIME HANDLER
+# =========================================================
+
+def get_lime_explanation(
+    features,
+    disease
+):
+
+    if disease == "stroke":
+
+        return []
+
+    try:
+
+        return lime_explain(
+            features,
+            disease
+        )
+
+    except Exception as error:
+
+        print(
+            "LIME explanation error:",
+            error
+        )
+
+        return []
+
+
+# =========================================================
+# HOME / HEALTH CHECK
+# =========================================================
+
+@app.route("/", methods=["GET"])
 def home():
 
     return jsonify({
@@ -409,341 +593,206 @@ def home():
         "status":
             "Running",
 
+        "supported_diseases":
+            SUPPORTED_DISEASES,
+
         "version":
-            "3.0",
-
-        "supported_diseases": [
-
-            "heart",
-
-            "diabetes",
-
-            "ckd",
-
-            "stroke"
-
-        ]
+            "3.0"
 
     })
 
 
-# ==========================================
-# Prediction
-# ==========================================
+# =========================================================
+# PREDICTION
+#
+# Accessible to:
+# admin
+# doctor
+# staff
+# =========================================================
 
-@app.route("/predict", methods=["POST"])
+@app.route(
+    "/predict",
+    methods=["POST"]
+)
+@role_required(
+    "doctor",
+    "staff"
+)
 def prediction():
 
-    data = request.get_json()
+    try:
 
-    if not data:
+        data = request.get_json()
 
-        return jsonify({
-            "error": "Invalid JSON data"
-        }), 400
+        if not data:
 
+            return jsonify({
 
-    # ======================================
-    # Disease
-    # ======================================
+                "success": False,
 
-    disease = data.get(
-        "disease",
-        "heart"
-    ).lower()
+                "error":
+                    "Invalid JSON data."
 
+            }), 400
 
-    if disease not in [
-        "heart",
-        "diabetes",
-        "ckd",
-        "stroke"
-    ]:
+        disease = data.get(
+            "disease",
+            "heart"
+        ).lower()
 
-        return jsonify({
+        # -------------------------------------------------
+        # Validate disease
+        # -------------------------------------------------
 
-            "error":
-                "Unsupported disease. Use 'heart', 'diabetes', 'ckd', or 'stroke'."
+        if disease not in SUPPORTED_DISEASES:
 
-        }), 400
+            return jsonify({
 
+                "success": False,
 
-    # ======================================
-    # Features
-    # ======================================
+                "error":
+                    "Unsupported disease. "
+                    "Use heart, diabetes, ckd, or stroke."
 
-    if "features" not in data:
+            }), 400
 
-        return jsonify({
+        # -------------------------------------------------
+        # Validate features
+        # -------------------------------------------------
 
-            "error":
-                "Missing 'features' field"
+        if "features" not in data:
 
-        }), 400
+            return jsonify({
 
+                "success": False,
 
-    features = data["features"]
+                "error":
+                    "Missing 'features' field."
 
+            }), 400
 
-    # ======================================
-    # Validate Feature Count
-    # ======================================
+        features = data["features"]
 
-    expected_features = {
+        # -------------------------------------------------
+        # Stroke can use dictionary or list
+        # -------------------------------------------------
 
-        "heart": 13,
+        if disease == "stroke" and isinstance(
+            features,
+            dict
+        ):
 
-        "diabetes": 16,
+            missing_features = [
 
-        "ckd": 24,
+                feature
 
-        "stroke": 10
+                for feature in STROKE_FEATURES
 
-    }
+                if feature not in features
 
+            ]
 
-    if len(features) != expected_features[disease]:
+            if missing_features:
 
-        return jsonify({
+                return jsonify({
 
-            "error":
-                f"{disease} requires "
-                f"{expected_features[disease]} features."
+                    "success": False,
 
-        }), 400
+                    "error":
+                        "Missing stroke features: "
+                        + ", ".join(missing_features)
 
+                }), 400
 
-    # ======================================
-    # Prediction
-    # ======================================
+        else:
 
-    result = predict(
-        features,
-        disease
-    )
+            if not isinstance(
+                features,
+                (list, tuple)
+            ):
 
+                return jsonify({
 
-    # ======================================
-    # SHAP
-    # ======================================
+                    "success": False,
 
-    explanation = explain(
-        features,
-        disease
-    )
+                    "error":
+                        "Features must be provided "
+                        "as a list."
 
+                }), 400
 
-    # ======================================
-    # LIME
-    # ======================================
+            if len(features) != EXPECTED_FEATURES[disease]:
 
-    lime = lime_explain(
-        features,
-        disease
-    )
+                return jsonify({
 
+                    "success": False,
 
-    # ======================================
-    # Recommendation
-    # ======================================
+                    "error":
+                        f"{disease} requires "
+                        f"{EXPECTED_FEATURES[disease]} "
+                        "features."
 
-    advice = recommendation(
+                }), 400
 
-        result["prediction_class"],
+        # -------------------------------------------------
+        # MODEL PREDICTION
+        # -------------------------------------------------
 
-        result["probability"],
-
-        disease
-
-    )
-
-
-    result["risk_level"] = advice["risk"]
-
-    result["recommendation"] = (
-        advice["recommendation"]
-    )
-
-    result["top_features"] = explanation
-
-    result["lime_features"] = lime
-
-
-    # ======================================
-    # Patient Information
-    # ======================================
-
-    patient = build_patient_data(
-
-        data,
-
-        features,
-
-        disease
-
-    )
-
-
-    # ======================================
-    # Save History
-    # ======================================
-
-    save_prediction(
-
-        patient,
-
-        result
-
-    )
-
-
-    return jsonify(result)
-
-
-# ==========================================
-# Generate Clinical Report
-# ==========================================
-
-@app.route("/report", methods=["POST"])
-def report():
-
-    data = request.get_json()
-
-    print(
-        "Received from frontend:",
-        data
-    )
-
-
-    if not data:
-
-        return jsonify({
-
-            "error":
-                "Invalid JSON data"
-
-        }), 400
-
-
-    # ======================================
-    # Disease
-    # ======================================
-
-    disease = data.get(
-        "disease",
-        "heart"
-    ).lower()
-
-
-    if disease not in [
-        "heart",
-        "diabetes",
-        "ckd",
-        "stroke"
-    ]:
-
-        return jsonify({
-
-            "error":
-                "Unsupported disease"
-
-        }), 400
-
-
-    # ======================================
-    # Features
-    # ======================================
-
-    if "features" not in data:
-
-        return jsonify({
-
-            "error":
-                "Missing 'features' field"
-
-        }), 400
-
-
-    features = data["features"]
-
-
-    # ======================================
-    # Expected Feature Count
-    # ======================================
-
-    expected_features = {
-
-        "heart": 13,
-
-        "diabetes": 16,
-
-        "ckd": 24,
-
-        "stroke": 10
-
-    }
-
-
-    if len(features) != expected_features[disease]:
-
-        return jsonify({
-
-            "error":
-                f"{disease} requires "
-                f"{expected_features[disease]} features."
-
-        }), 400
-
-
-    # ======================================
-    # Prediction
-    # ======================================
-
-    result = predict(
-
-        features,
-
-        disease
-
-    )
-
-
-    # ======================================
-    # SHAP
-    # ======================================
-
-    explanation = explain(
-
-        features,
-
-        disease
-
-    )
-
-
-    # ======================================
-    # LIME
-    # ======================================
-
-    # If the frontend already has the LIME
-    # explanation from /predict, use exactly
-    # the same explanation for the PDF.
-    #
-    # This prevents the PDF from generating
-    # a different LIME result for the same
-    # patient.
-
-    if "lime_features" in data and data["lime_features"]:
-
-        lime = data["lime_features"]
-
-        print(
-            "Using LIME explanation received from frontend."
+        result = predict(
+            features,
+            disease
         )
 
-    else:
+        # -------------------------------------------------
+        # SHAP
+        # -------------------------------------------------
 
-        lime = lime_explain(
+        explanation = explain(
+            features,
+            disease
+        )
+
+        # -------------------------------------------------
+        # LIME
+        # -------------------------------------------------
+
+        lime = get_lime_explanation(
+            features,
+            disease
+        )
+
+        # -------------------------------------------------
+        # RECOMMENDATION
+        # -------------------------------------------------
+
+        advice = get_recommendation(
+
+            result["prediction_class"],
+
+            result["probability"],
+
+            disease
+
+        )
+
+        result["risk_level"] = advice["risk"]
+
+        result["recommendation"] = (
+            advice["recommendation"]
+        )
+
+        result["top_features"] = explanation
+
+        result["lime_features"] = lime
+
+        # -------------------------------------------------
+        # PATIENT INFORMATION
+        # -------------------------------------------------
+
+        patient = build_patient_data(
+
+            data,
 
             features,
 
@@ -751,132 +800,448 @@ def report():
 
         )
 
-        print(
-            "LIME explanation not received from frontend. "
-            "Generating a new explanation."
+        # -------------------------------------------------
+        # SAVE HISTORY
+        # -------------------------------------------------
+
+        save_prediction(
+
+            patient,
+
+            result
+
         )
 
+        return jsonify(result), 200
 
-    # ======================================
-    # Recommendation
-    # ======================================
+    except Exception as error:
 
-    advice = recommendation(
+        print(
+            "Prediction Error:",
+            error
+        )
 
-        result["prediction_class"],
+        return jsonify({
 
-        result["probability"],
+            "success": False,
 
-        disease
+            "error":
+                str(error)
 
-    )
-
-
-    result["risk_level"] = advice["risk"]
-
-    result["recommendation"] = (
-        advice["recommendation"]
-    )
-
-    result["top_features"] = explanation
-
-    result["lime_features"] = lime
+        }), 500
 
 
-    # ======================================
-    # Patient
-    # ======================================
+# =========================================================
+# CLINICAL PDF REPORT
+#
+# Accessible to:
+# admin
+# doctor
+# staff
+# =========================================================
 
-    patient = build_patient_data(
+@app.route(
+    "/report",
+    methods=["POST"]
+)
+@role_required(
+    "admin",
+    "doctor",
+    "staff"
+)
+def report():
 
-        data,
+    try:
 
-        features,
+        data = request.get_json()
 
-        disease
+        print(
+            "Received from frontend:",
+            data
+        )
 
-    )
+        if not data:
 
+            return jsonify({
 
-    # ======================================
-    # Report Directory
-    # ======================================
+                "success": False,
 
-    reports_dir = os.path.join(
+                "error":
+                    "Invalid JSON data."
 
-        os.path.dirname(__file__),
+            }), 400
 
-        "reports"
+        disease = data.get(
+            "disease",
+            "heart"
+        ).lower()
 
-    )
+        # -------------------------------------------------
+        # Validate disease
+        # -------------------------------------------------
 
-    os.makedirs(
+        if disease not in SUPPORTED_DISEASES:
 
-        reports_dir,
+            return jsonify({
 
-        exist_ok=True
+                "success": False,
 
-    )
+                "error":
+                    "Unsupported disease."
 
+            }), 400
 
-    output_path = os.path.join(
+        # -------------------------------------------------
+        # Validate features
+        # -------------------------------------------------
 
-        reports_dir,
+        if "features" not in data:
 
-        "clinical_report.pdf"
+            return jsonify({
 
-    )
+                "success": False,
 
+                "error":
+                    "Missing 'features' field."
 
-    # ======================================
-    # Generate PDF
-    # ======================================
+            }), 400
 
-    generate_report(
+        features = data["features"]
 
-        patient,
+        if disease == "stroke" and isinstance(
+            features,
+            dict
+        ):
 
-        result,
+            missing_features = [
 
-        output_path
+                feature
 
-    )
+                for feature in STROKE_FEATURES
 
+                if feature not in features
 
-    return send_file(
+            ]
 
-        output_path,
+            if missing_features:
 
-        as_attachment=True,
+                return jsonify({
 
-        download_name="Clinical_Report.pdf"
+                    "success": False,
 
-    )
+                    "error":
+                        "Missing stroke features: "
+                        + ", ".join(missing_features)
 
+                }), 400
 
-# ==========================================
-# Prediction History
-# ==========================================
+        else:
 
-@app.route("/history", methods=["GET"])
+            if not isinstance(
+                features,
+                (list, tuple)
+            ):
+
+                return jsonify({
+
+                    "success": False,
+
+                    "error":
+                        "Features must be provided "
+                        "as a list."
+
+                }), 400
+
+            if len(features) != EXPECTED_FEATURES[disease]:
+
+                return jsonify({
+
+                    "success": False,
+
+                    "error":
+                        f"{disease} requires "
+                        f"{EXPECTED_FEATURES[disease]} "
+                        "features."
+
+                }), 400
+
+        # -------------------------------------------------
+        # MODEL PREDICTION
+        # -------------------------------------------------
+
+        result = predict(
+            features,
+            disease
+        )
+
+        # -------------------------------------------------
+        # SHAP
+        # -------------------------------------------------
+
+        explanation = explain(
+            features,
+            disease
+        )
+
+        # -------------------------------------------------
+        # LIME
+        # -------------------------------------------------
+
+        if (
+            "lime_features" in data
+            and data["lime_features"]
+        ):
+
+            lime = data["lime_features"]
+
+            print(
+                "Using LIME explanation "
+                "received from frontend."
+            )
+
+        else:
+
+            lime = get_lime_explanation(
+                features,
+                disease
+            )
+
+            if disease == "stroke":
+
+                print(
+                    "Stroke LIME is not available "
+                    "from current backend lime_explain.py."
+                )
+
+        # -------------------------------------------------
+        # RECOMMENDATION
+        # -------------------------------------------------
+
+        advice = get_recommendation(
+
+            result["prediction_class"],
+
+            result["probability"],
+
+            disease
+
+        )
+
+        result["risk_level"] = advice["risk"]
+
+        result["recommendation"] = (
+            advice["recommendation"]
+        )
+
+        result["top_features"] = explanation
+
+        result["lime_features"] = lime
+
+        # -------------------------------------------------
+        # PATIENT DATA
+        # -------------------------------------------------
+
+        patient = build_patient_data(
+
+            data,
+
+            features,
+
+            disease
+
+        )
+
+        # -------------------------------------------------
+        # REPORT DIRECTORY
+        # -------------------------------------------------
+
+        reports_dir = os.path.join(
+
+            os.path.dirname(
+                os.path.abspath(__file__)
+            ),
+
+            "reports"
+
+        )
+
+        os.makedirs(
+
+            reports_dir,
+
+            exist_ok=True
+
+        )
+
+        output_path = os.path.join(
+
+            reports_dir,
+
+            "clinical_report.pdf"
+
+        )
+
+        # -------------------------------------------------
+        # GENERATE PDF
+        # -------------------------------------------------
+
+        generate_report(
+
+            patient,
+
+            result,
+
+            output_path
+
+        )
+
+        return send_file(
+
+            output_path,
+
+            as_attachment=True,
+
+            download_name=
+                "Clinical_Report.pdf"
+
+        )
+
+    except Exception as error:
+
+        print(
+            "Report Error:",
+            error
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error":
+                str(error)
+
+        }), 500
+
+# =========================================================
+# DASHBOARD STATISTICS
+# =========================================================
+
+@app.route(
+    "/stats",
+    methods=["GET"]
+)
+@role_required(
+    "doctor",
+    "staff"
+)
+def statistics():
+
+    try:
+
+        history_data = get_predictions()
+
+        total_cases = len(history_data)
+
+        high_risk = sum(
+            1
+            for item in history_data
+            if str(item.get("risk_level", "")).lower() == "high"
+        )
+
+        low_risk = sum(
+            1
+            for item in history_data
+            if str(item.get("risk_level", "")).lower() == "low"
+        )
+
+        return jsonify({
+
+            "success": True,
+
+            "cases_processed": total_cases,
+
+            "high_risk_flags": high_risk,
+
+            "low_risk_cases": low_risk
+
+        }), 200
+
+    except Exception as error:
+
+        print(
+            "Statistics Error:",
+            error
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(error)
+
+        }), 500
+# =========================================================
+# HISTORY
+#
+# Accessible only to:
+# doctor
+# =========================================================
+
+@app.route(
+    "/history",
+    methods=["GET"]
+)
+@role_required(
+    "doctor"
+)
 def history():
 
-    history_data = get_predictions()
+    try:
 
-    return jsonify(history_data)
+        history_data = get_predictions()
+
+        return jsonify(
+            history_data
+        ), 200
+
+    except Exception as error:
+
+        print(
+            "History Error:",
+            error
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error":
+                str(error)
+
+        }), 500
 
 
-# ==========================================
-# Run Application
-# ==========================================
+# =========================================================
+# RUN APPLICATION
+# =========================================================
 
 if __name__ == "__main__":
-    import os
 
-    port = int(os.environ.get("PORT", 5000))
+    port = int(
+
+        os.environ.get(
+            "PORT",
+            5000
+        )
+
+    )
 
     app.run(
+
         host="0.0.0.0",
+
         port=port,
+
         debug=True
+
     )

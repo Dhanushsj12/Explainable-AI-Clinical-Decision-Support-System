@@ -1,28 +1,39 @@
-# Python
-__pycache__/
-*.pyc
-
-# Virtual Environment
-.venv/
-venv/
-env/
-
-# Jupyter
-.ipynb_checkpoints/
-
-# VS Code
-.vscode/
-
-# Python Cache
-*.pyo
-*.pyd
-
-# Operating System
-.DS_Store
-Thumbs.db
-
-# Model Cache
-*.log
-
-# Temporary Files
+# Python 
+__pycache__/ 
+*.pyc 
+ 
+# Virtual Environment 
+.venv/ 
+venv/ 
+env/ 
+ 
+# Jupyter 
+.ipynb_checkpoints/ 
+ 
+# VS Code 
+.vscode/ 
+ 
+# Python Cache 
+*.pyo 
+*.pyd 
+ 
+# Operating System 
+.DS_Store 
+Thumbs.db 
+ 
+# Model Cache 
+*.log 
+ 
+# Temporary Files 
 temp/
+
+# Local databases
+backend/users.db
+backend/predictions.db
+
+# Generated reports
+backend/reports/*.pdf
+
+# Environment variables
+.env
+*.env
