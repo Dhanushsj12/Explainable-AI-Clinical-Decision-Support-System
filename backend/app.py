@@ -3,7 +3,11 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
 from auth import auth_bp, role_required
-from auth_database import initialize_auth_database
+
+from auth_database import (
+    initialize_auth_database,
+    create_bootstrap_admin
+)
 
 from prediction import predict
 from explainability import explain
@@ -51,7 +55,10 @@ CORS(app)
 # =========================================================
 
 create_table()
+
 initialize_auth_database()
+
+create_bootstrap_admin()
 
 
 # =========================================================
@@ -69,18 +76,28 @@ app.register_blueprint(
 # =========================================================
 
 EXPECTED_FEATURES = {
+
     "heart": 13,
+
     "diabetes": 16,
+
     "ckd": 24,
+
     "stroke": 10
+
 }
 
 
 SUPPORTED_DISEASES = [
+
     "heart",
+
     "diabetes",
+
     "ckd",
+
     "stroke"
+
 ]
 
 
@@ -89,16 +106,27 @@ SUPPORTED_DISEASES = [
 # =========================================================
 
 STROKE_FEATURES = [
+
     "gender",
+
     "age",
+
     "hypertension",
+
     "heart_disease",
+
     "ever_married",
+
     "work_type",
+
     "Residence_type",
+
     "avg_glucose_level",
+
     "bmi",
+
     "smoking_status"
+
 ]
 
 
@@ -106,21 +134,36 @@ STROKE_FEATURES = [
 # BUILD HEART DISEASE PATIENT DATA
 # =========================================================
 
-def build_heart_patient_data(data, features):
+def build_heart_patient_data(
+    data,
+    features
+):
 
     return {
 
         "patient_id":
-            data.get("patient_id", ""),
+            data.get(
+                "patient_id",
+                ""
+            ),
 
         "patient_name":
-            data.get("patient_name", ""),
+            data.get(
+                "patient_name",
+                ""
+            ),
 
         "doctor_name":
-            data.get("doctor_name", ""),
+            data.get(
+                "doctor_name",
+                ""
+            ),
 
         "hospital_name":
-            data.get("hospital_name", ""),
+            data.get(
+                "hospital_name",
+                ""
+            ),
 
         "disease":
             "Heart Disease",
@@ -129,7 +172,9 @@ def build_heart_patient_data(data, features):
             features[0],
 
         "gender":
-            "Male" if features[1] == 1 else "Female",
+            "Male"
+            if features[1] == 1
+            else "Female",
 
         "cp":
             {
@@ -149,7 +194,9 @@ def build_heart_patient_data(data, features):
             features[4],
 
         "fbs":
-            "Yes" if features[5] == 1 else "No",
+            "Yes"
+            if features[5] == 1
+            else "No",
 
         "restecg":
             {
@@ -165,7 +212,9 @@ def build_heart_patient_data(data, features):
             features[7],
 
         "exang":
-            "Yes" if features[8] == 1 else "No",
+            "Yes"
+            if features[8] == 1
+            else "No",
 
         "oldpeak":
             features[9],
@@ -192,6 +241,7 @@ def build_heart_patient_data(data, features):
                 features[12],
                 str(features[12])
             )
+
     }
 
 
@@ -199,43 +249,76 @@ def build_heart_patient_data(data, features):
 # BUILD DIABETES PATIENT DATA
 # =========================================================
 
-def build_diabetes_patient_data(data, features):
+def build_diabetes_patient_data(
+    data,
+    features
+):
 
     diabetes_features = [
+
         "age",
+
         "gender",
+
         "polyuria",
+
         "polydipsia",
+
         "sudden_weight_loss",
+
         "weakness",
+
         "polyphagia",
+
         "genital_thrush",
+
         "visual_blurring",
+
         "itching",
+
         "irritability",
+
         "delayed_healing",
+
         "partial_paresis",
+
         "muscle_stiffness",
+
         "alopecia",
+
         "obesity"
+
     ]
 
     patient = {
 
         "patient_id":
-            data.get("patient_id", ""),
+            data.get(
+                "patient_id",
+                ""
+            ),
 
         "patient_name":
-            data.get("patient_name", ""),
+            data.get(
+                "patient_name",
+                ""
+            ),
 
         "doctor_name":
-            data.get("doctor_name", ""),
+            data.get(
+                "doctor_name",
+                ""
+            ),
 
         "hospital_name":
-            data.get("hospital_name", ""),
+            data.get(
+                "hospital_name",
+                ""
+            ),
 
         "disease":
             "Diabetes"
+
     }
 
     for index, feature_name in enumerate(
@@ -251,17 +334,25 @@ def build_diabetes_patient_data(data, features):
         elif feature_name == "gender":
 
             patient[feature_name] = (
+
                 "Male"
+
                 if value == 1
+
                 else "Female"
+
             )
 
         else:
 
             patient[feature_name] = (
+
                 "Yes"
+
                 if value == 1
+
                 else "No"
+
             )
 
     return patient
@@ -271,33 +362,59 @@ def build_diabetes_patient_data(data, features):
 # BUILD CKD PATIENT DATA
 # =========================================================
 
-def build_ckd_patient_data(data, features):
+def build_ckd_patient_data(
+    data,
+    features
+):
 
     ckd_features = [
 
         "age",
+
         "bp",
+
         "sg",
+
         "al",
+
         "su",
+
         "rbc",
+
         "pc",
+
         "pcc",
+
         "ba",
+
         "bgr",
+
         "bu",
+
         "sc",
+
         "sod",
+
         "pot",
+
         "hemo",
+
         "pcv",
+
         "wbcc",
+
         "rbcc",
+
         "htn",
+
         "dm",
+
         "cad",
+
         "appet",
+
         "pe",
+
         "ane"
 
     ]
@@ -305,36 +422,62 @@ def build_ckd_patient_data(data, features):
     patient = {
 
         "patient_id":
-            data.get("patient_id", ""),
+            data.get(
+                "patient_id",
+                ""
+            ),
 
         "patient_name":
-            data.get("patient_name", ""),
+            data.get(
+                "patient_name",
+                ""
+            ),
 
         "doctor_name":
-            data.get("doctor_name", ""),
+            data.get(
+                "doctor_name",
+                ""
+            ),
 
         "hospital_name":
-            data.get("hospital_name", ""),
+            data.get(
+                "hospital_name",
+                ""
+            ),
 
         "disease":
             "Chronic Kidney Disease"
+
     }
 
     numeric_features = [
 
         "age",
+
         "bp",
+
         "sg",
+
         "al",
+
         "su",
+
         "bgr",
+
         "bu",
+
         "sc",
+
         "sod",
+
         "pot",
+
         "hemo",
+
         "pcv",
+
         "wbcc",
+
         "rbcc"
 
     ]
@@ -342,13 +485,21 @@ def build_ckd_patient_data(data, features):
     yes_no_features = [
 
         "rbc",
+
         "pc",
+
         "pcc",
+
         "ba",
+
         "htn",
+
         "dm",
+
         "cad",
+
         "pe",
+
         "ane"
 
     ]
@@ -366,17 +517,25 @@ def build_ckd_patient_data(data, features):
         elif feature_name in yes_no_features:
 
             patient[feature_name] = (
+
                 "Yes"
+
                 if value == 1
+
                 else "No"
+
             )
 
         elif feature_name == "appet":
 
             patient[feature_name] = (
+
                 "Poor"
+
                 if value == 1
+
                 else "Good"
+
             )
 
     return patient
@@ -386,43 +545,63 @@ def build_ckd_patient_data(data, features):
 # BUILD STROKE PATIENT DATA
 # =========================================================
 
-def build_stroke_patient_data(data, features):
+def build_stroke_patient_data(
+    data,
+    features
+):
 
     patient = {
 
         "patient_id":
-            data.get("patient_id", ""),
+            data.get(
+                "patient_id",
+                ""
+            ),
 
         "patient_name":
-            data.get("patient_name", ""),
+            data.get(
+                "patient_name",
+                ""
+            ),
 
         "doctor_name":
-            data.get("doctor_name", ""),
+            data.get(
+                "doctor_name",
+                ""
+            ),
 
         "hospital_name":
-            data.get("hospital_name", ""),
+            data.get(
+                "hospital_name",
+                ""
+            ),
 
         "disease":
             "Stroke"
+
     }
 
     # -----------------------------------------------------
     # Frontend may send Stroke features as a dictionary
     # -----------------------------------------------------
 
-    if isinstance(features, dict):
+    if isinstance(
+        features,
+        dict
+    ):
 
         for feature_name in STROKE_FEATURES:
 
             if feature_name not in features:
 
                 raise ValueError(
-                    f"Missing stroke feature: {feature_name}"
+                    f"Missing stroke feature: "
+                    f"{feature_name}"
                 )
 
-            patient[feature_name] = features[
-                feature_name
-            ]
+            patient[feature_name] = (
+                features[feature_name]
+            )
 
         return patient
 
@@ -430,20 +609,28 @@ def build_stroke_patient_data(data, features):
     # Or frontend may send them as a list
     # -----------------------------------------------------
 
-    if isinstance(features, (list, tuple)):
+    if isinstance(
+        features,
+        (list, tuple)
+    ):
 
-        if len(features) != len(STROKE_FEATURES):
+        if len(features) != len(
+            STROKE_FEATURES
+        ):
 
             raise ValueError(
                 "Stroke requires "
-                f"{len(STROKE_FEATURES)} features."
+                f"{len(STROKE_FEATURES)} "
+                "features."
             )
 
         for index, feature_name in enumerate(
             STROKE_FEATURES
         ):
 
-            patient[feature_name] = features[index]
+            patient[feature_name] = (
+                features[index]
+            )
 
         return patient
 
@@ -457,7 +644,11 @@ def build_stroke_patient_data(data, features):
 # BUILD PATIENT DATA
 # =========================================================
 
-def build_patient_data(data, features, disease):
+def build_patient_data(
+    data,
+    features,
+    disease
+):
 
     if disease == "heart":
 
@@ -523,7 +714,8 @@ def get_recommendation(
 
         return {
 
-            "risk": "High",
+            "risk":
+                "High",
 
             "recommendation":
                 "The model indicates a higher likelihood "
@@ -537,7 +729,8 @@ def get_recommendation(
 
     return {
 
-        "risk": "Low",
+        "risk":
+            "Low",
 
         "recommendation":
             "The model indicates a lower likelihood "
@@ -582,13 +775,17 @@ def get_lime_explanation(
 # HOME / HEALTH CHECK
 # =========================================================
 
-@app.route("/", methods=["GET"])
+@app.route(
+    "/",
+    methods=["GET"]
+)
 def home():
 
     return jsonify({
 
         "project":
-            "Explainable AI Clinical Decision Support System",
+            "Explainable AI Clinical Decision "
+            "Support System",
 
         "status":
             "Running",
@@ -606,7 +803,6 @@ def home():
 # PREDICTION
 #
 # Accessible to:
-# admin
 # doctor
 # staff
 # =========================================================
@@ -629,7 +825,8 @@ def prediction():
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "error":
                     "Invalid JSON data."
@@ -649,7 +846,8 @@ def prediction():
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "error":
                     "Unsupported disease. "
@@ -665,7 +863,8 @@ def prediction():
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "error":
                     "Missing 'features' field."
@@ -678,9 +877,12 @@ def prediction():
         # Stroke can use dictionary or list
         # -------------------------------------------------
 
-        if disease == "stroke" and isinstance(
-            features,
-            dict
+        if (
+            disease == "stroke"
+            and isinstance(
+                features,
+                dict
+            )
         ):
 
             missing_features = [
@@ -697,11 +899,14 @@ def prediction():
 
                 return jsonify({
 
-                    "success": False,
+                    "success":
+                        False,
 
                     "error":
                         "Missing stroke features: "
-                        + ", ".join(missing_features)
+                        + ", ".join(
+                            missing_features
+                        )
 
                 }), 400
 
@@ -714,7 +919,8 @@ def prediction():
 
                 return jsonify({
 
-                    "success": False,
+                    "success":
+                        False,
 
                     "error":
                         "Features must be provided "
@@ -722,11 +928,14 @@ def prediction():
 
                 }), 400
 
-            if len(features) != EXPECTED_FEATURES[disease]:
+            if len(features) != EXPECTED_FEATURES[
+                disease
+            ]:
 
                 return jsonify({
 
-                    "success": False,
+                    "success":
+                        False,
 
                     "error":
                         f"{disease} requires "
@@ -776,13 +985,17 @@ def prediction():
 
         )
 
-        result["risk_level"] = advice["risk"]
+        result["risk_level"] = (
+            advice["risk"]
+        )
 
         result["recommendation"] = (
             advice["recommendation"]
         )
 
-        result["top_features"] = explanation
+        result["top_features"] = (
+            explanation
+        )
 
         result["lime_features"] = lime
 
@@ -812,7 +1025,9 @@ def prediction():
 
         )
 
-        return jsonify(result), 200
+        return jsonify(
+            result
+        ), 200
 
     except Exception as error:
 
@@ -823,7 +1038,8 @@ def prediction():
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "error":
                 str(error)
@@ -835,7 +1051,6 @@ def prediction():
 # CLINICAL PDF REPORT
 #
 # Accessible to:
-# admin
 # doctor
 # staff
 # =========================================================
@@ -845,7 +1060,6 @@ def prediction():
     methods=["POST"]
 )
 @role_required(
-    "admin",
     "doctor",
     "staff"
 )
@@ -864,7 +1078,8 @@ def report():
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "error":
                     "Invalid JSON data."
@@ -884,7 +1099,8 @@ def report():
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "error":
                     "Unsupported disease."
@@ -899,7 +1115,8 @@ def report():
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "error":
                     "Missing 'features' field."
@@ -908,9 +1125,12 @@ def report():
 
         features = data["features"]
 
-        if disease == "stroke" and isinstance(
-            features,
-            dict
+        if (
+            disease == "stroke"
+            and isinstance(
+                features,
+                dict
+            )
         ):
 
             missing_features = [
@@ -927,11 +1147,14 @@ def report():
 
                 return jsonify({
 
-                    "success": False,
+                    "success":
+                        False,
 
                     "error":
                         "Missing stroke features: "
-                        + ", ".join(missing_features)
+                        + ", ".join(
+                            missing_features
+                        )
 
                 }), 400
 
@@ -944,7 +1167,8 @@ def report():
 
                 return jsonify({
 
-                    "success": False,
+                    "success":
+                        False,
 
                     "error":
                         "Features must be provided "
@@ -952,11 +1176,14 @@ def report():
 
                 }), 400
 
-            if len(features) != EXPECTED_FEATURES[disease]:
+            if len(features) != EXPECTED_FEATURES[
+                disease
+            ]:
 
                 return jsonify({
 
-                    "success": False,
+                    "success":
+                        False,
 
                     "error":
                         f"{disease} requires "
@@ -992,7 +1219,9 @@ def report():
             and data["lime_features"]
         ):
 
-            lime = data["lime_features"]
+            lime = data[
+                "lime_features"
+            ]
 
             print(
                 "Using LIME explanation "
@@ -1010,7 +1239,8 @@ def report():
 
                 print(
                     "Stroke LIME is not available "
-                    "from current backend lime_explain.py."
+                    "from current backend "
+                    "lime_explain.py."
                 )
 
         # -------------------------------------------------
@@ -1027,13 +1257,17 @@ def report():
 
         )
 
-        result["risk_level"] = advice["risk"]
+        result["risk_level"] = (
+            advice["risk"]
+        )
 
         result["recommendation"] = (
             advice["recommendation"]
         )
 
-        result["top_features"] = explanation
+        result["top_features"] = (
+            explanation
+        )
 
         result["lime_features"] = lime
 
@@ -1115,12 +1349,14 @@ def report():
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "error":
                 str(error)
 
         }), 500
+
 
 # =========================================================
 # DASHBOARD STATISTICS
@@ -1140,29 +1376,53 @@ def statistics():
 
         history_data = get_predictions()
 
-        total_cases = len(history_data)
+        total_cases = len(
+            history_data
+        )
 
         high_risk = sum(
+
             1
+
             for item in history_data
-            if str(item.get("risk_level", "")).lower() == "high"
+
+            if str(
+                item.get(
+                    "risk_level",
+                    ""
+                )
+            ).lower() == "high"
+
         )
 
         low_risk = sum(
+
             1
+
             for item in history_data
-            if str(item.get("risk_level", "")).lower() == "low"
+
+            if str(
+                item.get(
+                    "risk_level",
+                    ""
+                )
+            ).lower() == "low"
+
         )
 
         return jsonify({
 
-            "success": True,
+            "success":
+                True,
 
-            "cases_processed": total_cases,
+            "cases_processed":
+                total_cases,
 
-            "high_risk_flags": high_risk,
+            "high_risk_flags":
+                high_risk,
 
-            "low_risk_cases": low_risk
+            "low_risk_cases":
+                low_risk
 
         }), 200
 
@@ -1175,11 +1435,15 @@ def statistics():
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
-            "error": str(error)
+            "error":
+                str(error)
 
         }), 500
+
+
 # =========================================================
 # HISTORY
 #
@@ -1213,7 +1477,8 @@ def history():
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "error":
                 str(error)
