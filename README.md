@@ -3,6 +3,12 @@
 
 ## XAI-Enhanced Multi-Disease Clinical Decision Support System
 
+## Live Demo
+
+The deployed application can be accessed here:
+
+👉 **[Clinical CDSS – Live Application](https://clinical-cdss-xai.onrender.com/login)**
+
 A modular and explainable Artificial Intelligence (AI) based Clinical Decision Support System (CDSS) designed to assist in the risk prediction of multiple diseases while providing interpretable explanations for machine learning predictions.
 
 The system integrates Machine Learning (ML), Explainable Artificial Intelligence (XAI), clinical recommendations, prediction history, and automated clinical report generation into a single web-based application.
