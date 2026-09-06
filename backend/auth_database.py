@@ -191,6 +191,9 @@ def update_user_role(
 #
 # Admin credentials are taken from Render environment
 # variables and are NOT stored in the source code.
+#
+# If the configured email already exists as another role,
+# that existing account will be promoted to Admin.
 # =========================================================
 
 def create_bootstrap_admin():
@@ -236,12 +239,32 @@ def create_bootstrap_admin():
         admin_email
     )
 
+    # -----------------------------------------------------
+    # If account already exists
+    # -----------------------------------------------------
+
     if existing_user:
 
-        print(
-            f"Bootstrap admin already exists: "
-            f"{admin_email}"
-        )
+        # If the existing account is not Admin,
+        # promote it to Admin.
+        if existing_user["role"] != "admin":
+
+            update_user_role(
+                existing_user["id"],
+                "admin"
+            )
+
+            print(
+                f"Existing user promoted to admin: "
+                f"{admin_email}"
+            )
+
+        else:
+
+            print(
+                f"Bootstrap admin already exists: "
+                f"{admin_email}"
+            )
 
         return
 
