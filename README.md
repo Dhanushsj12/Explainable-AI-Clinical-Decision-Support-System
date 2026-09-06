@@ -7,7 +7,7 @@
 
 The deployed application can be accessed here:
 
-👉 **[Clinical CDSS – Live Application](https://clinical-cdss-xai.onrender.com/login)**
+👉 **[Clinical CDSS – Live Application](https://clinical-cdss-xai.onrender.com/)**
 
 A modular and explainable Artificial Intelligence (AI) based Clinical Decision Support System (CDSS) designed to assist in the risk prediction of multiple diseases while providing interpretable explanations for machine learning predictions.
 
