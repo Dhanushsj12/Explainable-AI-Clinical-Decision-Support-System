@@ -518,35 +518,80 @@ function formatFeatureName(feature) {
 }
 
 
+function formatLimeAgreementFeature(item) {
+
+    let raw =
+        typeof item === "string"
+            ? item
+            : getLimeFeatureName(item);
+
+
+    if (raw === null || raw === undefined) {
+        return "";
+    }
+
+
+    raw = String(raw).trim();
+
+
+    /*
+     * Some backend agreement payloads can contain a trailing
+     * encoded value such as "Delayed, 0". Keep only the actual
+     * feature name before passing it through the normal formatter.
+     */
+
+    raw = raw.replace(
+        /\s*,\s*[-+]?\d*\.?\d+\s*$/,
+        ""
+    ).trim();
+
+
+    if (!raw) {
+        return "";
+    }
+
+
+    /*
+     * Preserve the existing canonical naming used throughout
+     * the application. "Delayed" is the abbreviated form that
+     * can appear in the agreement payload for "delayed healing".
+     */
+
+    if (raw.toLowerCase() === "delayed") {
+        raw = "delayed healing";
+    }
+
+
+    return formatFeatureName(raw);
+}
+
+
 /* ============================================================
    SHAP VALUE HELPERS
 ============================================================ */
 
 function getFeatureName(item) {
 
-    if (!item) {
+    if (item === null || item === undefined) {
         return "";
     }
 
 
-    if (
-        typeof item === "object" &&
-        !Array.isArray(item)
-    ) {
+    if (Array.isArray(item)) {
+        return item[0] ?? "";
+    }
 
+
+    if (typeof item === "object") {
         return (
             item.feature ??
             item.name ??
             item.feature_name ??
             item.featureName ??
+            item.label ??
+            item.key ??
             ""
         );
-
-    }
-
-
-    if (Array.isArray(item)) {
-        return item[0];
     }
 
 
@@ -556,31 +601,29 @@ function getFeatureName(item) {
 
 function getFeatureValue(item) {
 
-    if (!item) {
+    if (item === null || item === undefined) {
         return "";
     }
 
 
-    if (
-        typeof item === "object" &&
-        !Array.isArray(item)
-    ) {
+    if (Array.isArray(item)) {
+        return item[1] ?? "";
+    }
 
+
+    if (typeof item === "object") {
         return (
             item.value ??
             item.contribution ??
             item.weight ??
             item.importance ??
             item.shap_value ??
+            item.shapValue ??
             item.shap ??
+            item.score ??
+            item.impact ??
             ""
         );
-
-    }
-
-
-    if (Array.isArray(item)) {
-        return item[1];
     }
 
 
@@ -594,30 +637,27 @@ function getFeatureValue(item) {
 
 function getLimeFeatureName(item) {
 
-    if (!item) {
+    if (item === null || item === undefined) {
         return "";
     }
 
 
-    if (
-        typeof item === "object" &&
-        !Array.isArray(item)
-    ) {
+    if (Array.isArray(item)) {
+        return item[0] ?? "";
+    }
 
+
+    if (typeof item === "object") {
         return (
             item.feature ??
             item.name ??
             item.feature_name ??
             item.featureName ??
             item.rule ??
+            item.label ??
+            item.key ??
             ""
         );
-
-    }
-
-
-    if (Array.isArray(item)) {
-        return item[0];
     }
 
 
@@ -627,29 +667,28 @@ function getLimeFeatureName(item) {
 
 function getLimeValue(item) {
 
-    if (!item) {
+    if (item === null || item === undefined) {
         return "";
     }
 
 
-    if (
-        typeof item === "object" &&
-        !Array.isArray(item)
-    ) {
+    if (Array.isArray(item)) {
+        return item[1] ?? "";
+    }
 
+
+    if (typeof item === "object") {
         return (
             item.weight ??
             item.value ??
             item.contribution ??
             item.score ??
+            item.lime_value ??
+            item.limeValue ??
+            item.importance ??
+            item.impact ??
             ""
         );
-
-    }
-
-
-    if (Array.isArray(item)) {
-        return item[1];
     }
 
 
@@ -668,7 +707,7 @@ function formatNumericValue(value) {
         Number.isFinite(value)
     ) {
 
-        return value.toFixed(3);
+        return value.toFixed(4);
 
     }
 
@@ -679,7 +718,7 @@ function formatNumericValue(value) {
         Number.isFinite(Number(value))
     ) {
 
-        return Number(value).toFixed(3);
+        return Number(value).toFixed(4);
 
     }
 
@@ -779,7 +818,8 @@ function normalizeAgreement(agreement) {
 
 
     const shapLimeOverlap =
-        agreement.overlap ??
+        agreement.shared_feature_count ??
+        agreement.sharedFeatureCount ??
         agreement.overlap_count ??
         agreement.overlapCount ??
         agreement.common_count ??
@@ -789,9 +829,59 @@ function normalizeAgreement(agreement) {
         null;
 
 
+    const featureOverlap =
+        agreement.feature_overlap ??
+        agreement.featureOverlap ??
+        agreement.overlap_percentage ??
+        agreement.overlapPercentage ??
+        agreement.feature_overlap_percentage ??
+        agreement.featureOverlapPercentage ??
+        null;
+
+
+    const directionAgreement =
+        agreement.direction_agreement ??
+        agreement.directionAgreement ??
+        agreement.direction_agreement_percentage ??
+        agreement.directionAgreementPercentage ??
+        null;
+
+
+    const rankingAgreement =
+        agreement.ranking_agreement ??
+        agreement.rankingAgreement ??
+        agreement.ranking_agreement_percentage ??
+        agreement.rankingAgreementPercentage ??
+        null;
+
+
+    const overallConsistency =
+        agreement.overall_consistency ??
+        agreement.overallConsistency ??
+        agreement.overall_consistency_score ??
+        agreement.overallConsistencyScore ??
+        score;
+
+
+    const consistencyLevel =
+        agreement.consistency_level ??
+        agreement.consistencyLevel ??
+        null;
+
+
     return {
 
         score,
+
+        featureOverlap,
+
+        directionAgreement,
+
+        rankingAgreement,
+
+        overallConsistency,
+
+        consistencyLevel,
 
         shapLimeOverlap,
 
@@ -917,6 +1007,26 @@ function buildFallbackAgreement(
 
         score,
 
+        featureOverlap:
+            denominator > 0
+                ? (
+                    uniqueCommon.length /
+                    denominator
+                ) * 100
+                : 0,
+
+        directionAgreement:
+            null,
+
+        rankingAgreement:
+            null,
+
+        overallConsistency:
+            score,
+
+        consistencyLevel:
+            null,
+
         shapLimeOverlap:
             uniqueCommon.length,
 
@@ -1037,11 +1147,21 @@ function ExplanationCard({
                                                         ? getFeatureValue(item)
                                                         : getLimeValue(item);
 
+                                                console.log(
+                                                    "EXPLANATION DEBUG:",
+                                                    type,
+                                                    JSON.stringify(item),
+                                                    "VALUE:",
+                                                    value,
+                                                    "FORMATTED:",
+                                                    formatNumericValue(value)
+                                                );
+
 
                                                 const displayName =
-                                                    formatFeatureName(
-                                                        rawName
-                                                    );
+                                                    type === "lime"
+                                                        ? String(rawName ?? "").trim()
+                                                        : formatFeatureName(rawName);
 
 
                                                 return (
@@ -1078,18 +1198,21 @@ function ExplanationCard({
                                                         </span>
 
 
-                                                        <strong
+                                                        <span
                                                             style={{
-                                                                fontSize:
-                                                                    "13px"
+                                                                display: "block",
+                                                                minWidth: "70px",
+                                                                textAlign: "right",
+                                                                fontSize: "13px",
+                                                                fontWeight: 700,
+                                                                fontFamily: "monospace",
+                                                                color: "var(--cyan2, #1687b5)",
+                                                                visibility: "visible",
+                                                                opacity: 1
                                                             }}
                                                         >
-                                                            {
-                                                                formatNumericValue(
-                                                                    value
-                                                                )
-                                                            }
-                                                        </strong>
+                                                            {formatNumericValue(value)}
+                                                        </span>
 
                                                     </div>
 
@@ -1178,6 +1301,72 @@ function AgreementSection({
         agreementFeatures.length;
 
 
+    const featureOverlap =
+        data.featureOverlap !== null &&
+        data.featureOverlap !== undefined
+            ? data.featureOverlap
+            : agreementFeatures.length > 0
+                ? (
+                    agreementFeatures.length /
+                    Math.max(
+                        new Set(
+                            (features || [])
+                                .map(getFeatureName)
+                                .filter(Boolean)
+                                .map(normalizeFeatureName)
+                        ).size,
+                        new Set(
+                            (limeFeatures || [])
+                                .map(getLimeFeatureName)
+                                .filter(Boolean)
+                                .map(normalizeFeatureName)
+                        ).size
+                    )
+                ) * 100
+                : null;
+
+
+    const directionAgreement =
+        data.directionAgreement;
+
+
+    const rankingAgreement =
+        data.rankingAgreement;
+
+
+    const overallConsistency =
+        data.overallConsistency ??
+        data.score;
+
+
+    const consistencyLevel =
+        data.consistencyLevel ??
+        (
+            typeof overallConsistency === "number"
+                ? overallConsistency >= 80
+                    ? "High"
+                    : overallConsistency >= 60
+                        ? "Moderate"
+                        : "Low"
+                : null
+        );
+
+
+    const formatAgreementMetric = (value) => {
+        if (value === null || value === undefined || value === "") {
+            return "—";
+        }
+
+        const numeric = Number(
+            String(value).replace("%", "").trim()
+        );
+
+        return Number.isFinite(numeric)
+            ? `${numeric.toFixed(2)}%`
+            : "—";
+    };
+
+
     return (
 
         <div className="wrap mt-24">
@@ -1226,59 +1415,72 @@ function AgreementSection({
                     >
 
                         <div className="metric-tile">
-
                             <div className="metric-tile-label">
                                 Agreement Score
                             </div>
-
                             <div className="metric-tile-value">
-
-                                {
-                                    score !== null &&
-                                    score !== undefined
-                                        ? (
-                                            typeof score === "number"
-                                                ? `${score.toFixed(2)}%`
-                                                : `${String(score).replace(
-                                                    /%$/,
-                                                    ""
-                                                )}%`
-                                        )
-                                        : "—"
-                                }
-
+                                {formatAgreementMetric(data.score)}
                             </div>
-
                         </div>
 
+                        <div className="metric-tile">
+                            <div className="metric-tile-label">
+                                Feature Overlap
+                            </div>
+                            <div className="metric-tile-value">
+                                {formatAgreementMetric(featureOverlap)}
+                            </div>
+                        </div>
 
                         <div className="metric-tile">
-
                             <div className="metric-tile-label">
-                                Shared Features
+                                Direction Agreement
                             </div>
+                            <div className="metric-tile-value">
+                                {formatAgreementMetric(directionAgreement)}
+                            </div>
+                        </div>
 
+                        <div className="metric-tile">
+                            <div className="metric-tile-label">
+                                Ranking Agreement
+                            </div>
+                            <div className="metric-tile-value">
+                                {formatAgreementMetric(rankingAgreement)}
+                            </div>
+                        </div>
+
+                        <div className="metric-tile">
+                            <div className="metric-tile-label">
+                                Overall Consistency
+                            </div>
+                            <div className="metric-tile-value">
+                                {formatAgreementMetric(overallConsistency)}
+                            </div>
+                        </div>
+
+                        <div className="metric-tile">
+                            <div className="metric-tile-label">
+                                Shared Feature Count
+                            </div>
                             <div className="metric-tile-value">
                                 {sharedCount}
                             </div>
-
-                        </div>
-
-
-                        <div className="metric-tile">
-
-                            <div className="metric-tile-label">
-                                Evidence Sources
-                            </div>
-
-                            <div className="metric-tile-value">
-                                SHAP + LIME
-                            </div>
-
                         </div>
 
                     </div>
 
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            marginTop: "10px"
+                        }}
+                    >
+                        <span className="badge badge-neutral">
+                            Consistency Level: {consistencyLevel || "N/A"}
+                        </span>
+                    </div>
 
                     {
                         agreementFeatures.length > 0 && (
@@ -1452,23 +1654,12 @@ function AgreementSection({
                                             .map(
                                                 (
                                                     item
-                                                ) => {
-
-                                                    const name =
-                                                        typeof item ===
-                                                        "string"
-                                                            ? item
-                                                            : getLimeFeatureName(
-                                                                item
-                                                            );
-
-
-                                                    return formatFeatureName(
-                                                        name
-                                                    );
-
-                                                }
+                                                ) =>
+                                                    formatLimeAgreementFeature(
+                                                        item
+                                                    )
                                             )
+                                            .filter(Boolean)
                                             .join(", ")
                                     }
 
@@ -1835,6 +2026,7 @@ function CounterfactualSection({
                                                                                     let oldValue =
                                                                                         "—";
 
+
                                                                                     let newValue =
                                                                                         "—";
 
@@ -2186,7 +2378,7 @@ function FeatureImportance({
      */
 
     const showCounterfactual =
-        true;
+        false;
 
 
     if (

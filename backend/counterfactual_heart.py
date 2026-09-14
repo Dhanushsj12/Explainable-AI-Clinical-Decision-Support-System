@@ -15,7 +15,8 @@ from model_loader import (
     stroke_model,
     stroke_scaler,
     stroke_imputer,
-    stroke_feature_names
+    stroke_feature_names,
+    stroke_threshold
 )
 
 
@@ -1263,6 +1264,53 @@ def predict_patient(
         "model"
     ]
 
+    # ------------------------------------------------------------
+    # Stroke MUST use the exact same preprocessing and decision
+    # threshold as the production prediction pipeline.
+    #
+    # preprocess_stroke_patient() already performs:
+    # raw categorical normalization -> imputation -> one-hot
+    # encoding -> exact feature ordering -> scaling.
+    # Do NOT scale Stroke a second time.
+    # ------------------------------------------------------------
+    if disease == "stroke":
+
+        model_input = preprocess_stroke_patient(
+            patient
+        )
+
+        try:
+            probability = float(
+                model.predict_proba(
+                    model_input
+                )[0][1]
+            )
+        except Exception:
+            prediction_raw = int(
+                model.predict(
+                    model_input
+                )[0]
+            )
+            probability = (
+                1.0
+                if prediction_raw == 1
+                else 0.0
+            )
+
+        prediction = int(
+            probability >= stroke_threshold
+        )
+
+        return (
+            prediction,
+            probability
+        )
+
+    # ------------------------------------------------------------
+    # Heart / Diabetes / CKD:
+    # Follow their existing production path:
+    # raw feature frame -> numeric conversion -> scaler -> model.
+    # ------------------------------------------------------------
     scaler = config[
         "scaler"
     ]
@@ -1283,13 +1331,11 @@ def predict_patient(
     )
 
     try:
-
         probability = float(
             model.predict_proba(
                 scaled
             )[0][1]
         )
-
     except Exception:
 
         probability = (
@@ -1303,10 +1349,6 @@ def predict_patient(
         probability
     )
 
-
-# ============================================================
-# REFERENCE VALUES
-# ============================================================
 
 def get_reference_values(
     disease,
@@ -1614,9 +1656,55 @@ def get_reference_values(
 
 def calculate_change_magnitude(
     original,
-    new_value
+    new_value,
+    disease=None,
+    feature=None
 ):
 
+    # ------------------------------------------------------------
+    # Categorical/binary changes:
+    # One state transition = one unit of change.
+    # ------------------------------------------------------------
+    if (
+        disease is not None
+        and
+        feature is not None
+        and
+        feature in CATEGORICAL_FEATURES.get(
+            normalize_disease(disease),
+            set()
+        )
+    ):
+
+        try:
+            old = float(original)
+            new = float(new_value)
+
+            return (
+                0.0
+                if abs(old - new) < 1e-12
+                else 1.0
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            return (
+                0.0
+                if str(original) == str(new_value)
+                else 1.0
+            )
+
+    # ------------------------------------------------------------
+    # Numerical changes:
+    # Normalize using the reference distribution when available.
+    # This prevents values like:
+    #     SG 1.020 -> 1.010
+    # from being treated with the same scale as a large laboratory
+    # measurement change.
+    # ------------------------------------------------------------
     try:
 
         old = float(
@@ -1627,19 +1715,47 @@ def calculate_change_magnitude(
             new_value
         )
 
-        # Binary changes.
         if (
-            old in [0, 1]
+            not np.isfinite(old)
+            or
+            not np.isfinite(new)
+        ):
+            raise ValueError
+
+        if abs(old - new) < 1e-12:
+            return 0.0
+
+        if (
+            disease is not None
             and
-            new in [0, 1]
+            feature is not None
         ):
 
-            return (
-                0.0
-                if old == new
-                else 1.0
+            stats = _reference_numeric_stats(
+                disease,
+                feature
             )
 
+            if stats is not None:
+
+                scale = max(
+                    stats.get(
+                        "q90",
+                        0.0
+                    )
+                    -
+                    stats.get(
+                        "q10",
+                        0.0
+                    ),
+                    1e-9
+                )
+
+                return abs(
+                    new - old
+                ) / scale
+
+        # Fallback when reference statistics are unavailable.
         denominator = max(
             abs(old),
             1.0
@@ -1662,6 +1778,536 @@ def calculate_change_magnitude(
         )
 
 
+def feature_is_immutable(
+    disease,
+    feature
+):
+    disease = normalize_disease(disease)
+
+    return feature in IMMUTABLE_FEATURES.get(
+        disease,
+        set()
+    )
+
+
+def feature_priority(
+    disease,
+    feature
+):
+    disease = normalize_disease(disease)
+
+    preferred = PREFERRED_FEATURES.get(
+        disease,
+        []
+    )
+
+    try:
+        index = preferred.index(feature)
+        return index
+    except ValueError:
+        return len(preferred) + 100
+
+
+def within_domain(
+    feature,
+    value
+):
+    numeric = safe_numeric(value)
+
+    if not np.isfinite(numeric):
+        return True
+
+    bounds = DOMAIN_BOUNDS.get(
+        feature
+    )
+
+    if bounds is None:
+        return True
+
+    lower, upper = bounds
+
+    return (
+        lower <= numeric <= upper
+    )
+
+
+_REFERENCE_STATS_CACHE = {}
+
+
+def _reference_numeric_stats(
+    disease,
+    feature
+):
+    """
+    Return robust statistics from the project's reference training
+    data. Results are cached because counterfactual search may evaluate
+    thousands of candidates.
+    """
+
+    disease = normalize_disease(
+        disease
+    )
+
+    cache_key = (
+        disease,
+        feature
+    )
+
+    if cache_key in _REFERENCE_STATS_CACHE:
+        return _REFERENCE_STATS_CACHE[cache_key]
+
+    df = load_reference_dataset(
+        disease
+    )
+
+    if df is None:
+        _REFERENCE_STATS_CACHE[cache_key] = None
+        return None
+
+    column = feature
+
+    if (
+        column not in df.columns
+        and
+        feature == "Residence_type"
+        and
+        "residence_type" in df.columns
+    ):
+        column = "residence_type"
+
+    if column not in df.columns:
+        _REFERENCE_STATS_CACHE[cache_key] = None
+        return None
+
+    series = pd.to_numeric(
+        df[column],
+        errors="coerce"
+    ).dropna()
+
+    if len(series) == 0:
+        _REFERENCE_STATS_CACHE[cache_key] = None
+        return None
+
+    values = series.to_numpy(
+        dtype=float
+    )
+
+    values = values[
+        np.isfinite(values)
+    ]
+
+    if len(values) == 0:
+        _REFERENCE_STATS_CACHE[cache_key] = None
+        return None
+
+    stats = {
+        "median": float(
+            np.median(values)
+        ),
+        "q01": float(
+            np.quantile(values, 0.01)
+        ),
+        "q99": float(
+            np.quantile(values, 0.99)
+        ),
+        "q10": float(
+            np.quantile(values, 0.10)
+        ),
+        "q90": float(
+            np.quantile(values, 0.90)
+        ),
+        "std": float(
+            np.std(values)
+        ) if len(values) > 1 else 0.0
+    }
+
+    _REFERENCE_STATS_CACHE[cache_key] = stats
+
+    return stats
+
+
+def candidate_plausibility_penalty(
+    patient,
+    disease,
+    changes
+):
+    """
+    Lower is better.
+
+    Penalize a candidate when it pushes changed features far outside
+    the 1st-99th percentile of the reference training distribution.
+    For categorical features this returns no distribution penalty.
+    """
+
+    disease = normalize_disease(
+        disease
+    )
+
+    penalty = 0.0
+
+    for feature, details in changes.items():
+
+        new_value = details.get(
+            "new"
+        )
+
+        if feature in CATEGORICAL_FEATURES.get(
+            disease,
+            set()
+        ):
+            continue
+
+        stats = _reference_numeric_stats(
+            disease,
+            feature
+        )
+
+        if stats is None:
+            continue
+
+        numeric = safe_numeric(
+            new_value
+        )
+
+        if not np.isfinite(
+            numeric
+        ):
+            penalty += 5.0
+            continue
+
+        if numeric < stats["q01"]:
+            width = max(
+                stats["q90"] - stats["q10"],
+                1e-9
+            )
+            penalty += (
+                stats["q01"] - numeric
+            ) / width
+
+        elif numeric > stats["q99"]:
+            width = max(
+                stats["q90"] - stats["q10"],
+                1e-9
+            )
+            penalty += (
+                numeric - stats["q99"]
+            ) / width
+
+    return float(
+        penalty
+    )
+
+
+def _candidate_direction_score(
+    disease,
+    original,
+    new_value,
+    feature,
+    target_class
+):
+    """
+    Soft preference only.
+
+    This never overrides the trained model. It simply ranks
+    scientifically interpretable directions higher when the feature
+    has a well-known state direction in the project.
+
+    1.0 = preferred direction
+    0.5 = neutral / unknown
+    0.0 = opposite of preferred direction
+
+    target_class is the class the model must flip to.
+    """
+
+    disease = normalize_disease(
+        disease
+    )
+
+    old = safe_numeric(
+        original
+    )
+    new = safe_numeric(
+        new_value
+    )
+
+    if not np.isfinite(old) or not np.isfinite(new):
+        return 0.5
+
+    delta = new - old
+
+    if abs(delta) < 1e-12:
+        return 0.5
+
+    # ------------------------------------------------------------
+    # DIABETES
+    # Positive class should be associated with the presence of
+    # symptom/state markers. Negative class is the reverse.
+    # ------------------------------------------------------------
+
+    diabetes_positive = {
+        "polyuria",
+        "polydipsia",
+        "sudden_weight_loss",
+        "weakness",
+        "polyphagia",
+        "genital_thrush",
+        "visual_blurring",
+        "itching",
+        "irritability",
+        "delayed_healing",
+        "partial_paresis",
+        "muscle_stiffness",
+        "alopecia",
+        "obesity"
+    }
+
+    if disease == "diabetes" and feature in diabetes_positive:
+        if old in (0.0, 1.0) and new in (0.0, 1.0):
+            expected_positive = new > old
+            return (
+                1.0
+                if (
+                    target_class == 1
+                    and expected_positive
+                ) or (
+                    target_class == 0
+                    and not expected_positive
+                )
+                else 0.0
+            )
+
+    # ------------------------------------------------------------
+    # CKD
+    # These are soft clinical-state directions used only for ranking.
+    # ------------------------------------------------------------
+
+    ckd_positive_up = {
+        "al",
+        "su",
+        "rbc",
+        "pc",
+        "pcc",
+        "ba",
+        "bgr",
+        "bu",
+        "sc",
+        "pot"
+    }
+
+    ckd_positive_down = {
+        "sg",
+        "hemo",
+        "pcv"
+    }
+
+    ckd_positive_up_large = {
+        "wbcc"
+    }
+
+    if disease == "ckd":
+
+        if feature in ckd_positive_up:
+            preferred_up = delta > 0
+
+        elif feature in ckd_positive_down:
+            preferred_up = delta < 0
+
+        elif feature in ckd_positive_up_large:
+            preferred_up = delta > 0
+
+        else:
+            preferred_up = None
+
+        if preferred_up is not None:
+            return (
+                1.0
+                if (
+                    target_class == 1
+                    and preferred_up
+                ) or (
+                    target_class == 0
+                    and not preferred_up
+                )
+                else 0.0
+            )
+
+    # ------------------------------------------------------------
+    # STROKE
+    # ------------------------------------------------------------
+
+    if disease == "stroke":
+
+        if feature in {
+            "hypertension",
+        } and old in (0.0, 1.0) and new in (0.0, 1.0):
+
+            positive_direction = new > old
+
+            return (
+                1.0
+                if (
+                    target_class == 1
+                    and positive_direction
+                ) or (
+                    target_class == 0
+                    and not positive_direction
+                )
+                else 0.0
+            )
+
+        if feature == "smoking_status":
+            # Encoded values:
+            # 0 never smoked
+            # 1 formerly smoked
+            # 2 smokes
+            # 3 unknown
+            if target_class == 1:
+                return (
+                    1.0 if new > old and new <= 2 else 0.5
+                )
+            if target_class == 0:
+                return (
+                    1.0 if new < old else 0.5
+                )
+
+        if feature in {
+            "avg_glucose_level",
+            "bmi"
+        }:
+            preferred_up = delta > 0
+
+            return (
+                0.75
+                if (
+                    target_class == 1
+                    and preferred_up
+                ) or (
+                    target_class == 0
+                    and not preferred_up
+                )
+                else 0.25
+            )
+
+    # ------------------------------------------------------------
+    # HEART
+    # ------------------------------------------------------------
+
+    if disease == "heart":
+
+        if feature in {
+            "trestbps",
+            "chol",
+            "oldpeak"
+        }:
+            preferred_up = delta > 0
+
+            return (
+                0.85
+                if (
+                    target_class == 1
+                    and preferred_up
+                ) or (
+                    target_class == 0
+                    and not preferred_up
+                )
+                else 0.15
+            )
+
+        if feature == "thalach":
+            preferred_up = delta < 0
+
+            return (
+                0.85
+                if (
+                    target_class == 1
+                    and preferred_up
+                ) or (
+                    target_class == 0
+                    and not preferred_up
+                )
+                else 0.15
+            )
+
+        if feature in {
+            "fbs",
+            "exang"
+        } and old in (0.0, 1.0) and new in (0.0, 1.0):
+
+            positive_direction = new > old
+
+            return (
+                0.85
+                if (
+                    target_class == 1
+                    and positive_direction
+                ) or (
+                    target_class == 0
+                    and not positive_direction
+                )
+                else 0.15
+            )
+
+    return 0.5
+
+
+def _dedupe_numeric_values(
+    values,
+    current
+):
+    result = []
+
+    for value in values:
+
+        if not within_domain(
+            "",
+            value
+        ):
+            continue
+
+        try:
+
+            if current is not None and abs(
+                float(value) - float(current)
+            ) < 1e-12:
+                continue
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            if str(value) == str(current):
+                continue
+
+        if all(
+            (
+                (
+                    not np.isfinite(
+                        safe_numeric(existing)
+                    )
+                )
+                or
+                (
+                    not np.isfinite(
+                        safe_numeric(value)
+                    )
+                )
+                or
+                abs(
+                    safe_numeric(existing)
+                    -
+                    safe_numeric(value)
+                ) >= 1e-12
+            )
+            for existing in result
+        ):
+            result.append(
+                value
+            )
+
+    return result
+
+
 # ============================================================
 # CANDIDATE VALUES
 # ============================================================
@@ -1672,9 +2318,20 @@ def candidate_values_for_feature(
     feature
 ):
 
+    disease = normalize_disease(
+        disease
+    )
+
     original = patient.get(
         feature
     )
+
+    # Immutable features must never be changed.
+    if feature_is_immutable(
+        disease,
+        feature
+    ):
+        return []
 
     values = get_reference_values(
         disease,
@@ -1682,50 +2339,242 @@ def candidate_values_for_feature(
         original
     )
 
-    result = []
+    # Explicitly constrain Stroke categorical variables to their
+    # legitimate encoded domain.
+    if disease == "stroke":
+
+        if feature == "gender":
+            values = [0, 1, 2]
+
+        elif feature == "ever_married":
+            values = [0, 1]
+
+        elif feature == "work_type":
+            values = [0, 1, 2, 3, 4]
+
+        elif feature == "Residence_type":
+            values = [0, 1]
+
+        elif feature == "smoking_status":
+            values = [0, 1, 2, 3]
+
+        elif feature in {
+            "hypertension",
+            "heart_disease"
+        }:
+            values = [0, 1]
+
+    # Keep only valid domain values.
+    filtered = []
 
     for value in values:
 
+        if not within_domain(
+            feature,
+            value
+        ):
+            continue
+
+        # Binary/categorical variables must remain in their
+        # legitimate finite state set.
+        if (
+            feature in CATEGORICAL_FEATURES.get(
+                disease,
+                set()
+            )
+        ):
+
+            numeric = safe_numeric(
+                value
+            )
+
+            if np.isfinite(numeric):
+
+                if disease == "heart" and feature == "sex":
+                    if int(numeric) not in {0, 1}:
+                        continue
+
+                elif disease == "heart" and feature in {"cp", "thal"}:
+                    if int(numeric) < 0:
+                        continue
+
+                elif disease == "heart" and feature in {"restecg", "slope", "ca"}:
+                    if int(numeric) < 0:
+                        continue
+
+                elif disease == "diabetes":
+                    if int(numeric) not in {0, 1}:
+                        continue
+
+                elif disease == "ckd":
+                    if feature in {
+                        "rbc",
+                        "pc",
+                        "pcc",
+                        "ba",
+                        "htn",
+                        "dm",
+                        "cad",
+                        "appet",
+                        "pe",
+                        "ane"
+                    } and int(numeric) not in {0, 1}:
+                        continue
+
+                elif disease == "stroke":
+                    if feature == "gender" and int(numeric) not in {0, 1, 2}:
+                        continue
+                    if feature in {
+                        "hypertension",
+                        "heart_disease",
+                        "ever_married",
+                        "Residence_type"
+                    } and int(numeric) not in {0, 1}:
+                        continue
+                    if feature == "work_type" and int(numeric) not in {0, 1, 2, 3, 4}:
+                        continue
+                    if feature == "smoking_status" and int(numeric) not in {0, 1, 2, 3}:
+                        continue
+
+        filtered.append(
+            value
+        )
+
+    # Remove duplicates and current value.
+    filtered = _dedupe_numeric_values(
+        filtered,
+        original
+    )
+
+    # Order candidates by closeness to the current state.
+    def closeness(value):
+
         try:
-
-            if original is not None:
-
-                if (
-                    abs(
-                        float(value)
-                        -
-                        float(original)
-                    ) < 1e-12
-                ):
-
-                    continue
+            return abs(
+                float(value)
+                -
+                float(original)
+            )
 
         except (
             TypeError,
             ValueError
         ):
 
-            if str(value) == str(
+            return 0.0
+
+    filtered = sorted(
+        filtered,
+        key=closeness
+    )
+
+    # Preserve more distant values too when a one-step flip needs
+    # them, but cap the search.
+    return filtered[
+        :MAX_VALUES_PER_FEATURE
+    ]
+
+
+# ============================================================
+# BUILD CHANGE DETAILS
+# ============================================================
+
+def make_change_details(
+    patient,
+    feature,
+    new_value,
+    disease=None
+):
+
+    original = patient.get(
+        feature
+    )
+
+    return {
+
+        "old":
+            clean_value(
                 original
-            ):
+            ),
 
-                continue
+        "new":
+            clean_value(
+                new_value
+            ),
 
-        result.append(
-            value
+        "normalized_change":
+            round(
+                calculate_change_magnitude(
+                    original,
+                    new_value,
+                    disease=disease,
+                    feature=feature
+                ),
+                6
+            )
+    }
+
+
+def values_equal(
+    old_value,
+    new_value
+):
+    """
+    Robust equality check for candidate generation/normalization.
+
+    Handles:
+    - numeric values with floating-point tolerance
+    - strings/categories
+    - None values
+    """
+
+    if old_value is None or new_value is None:
+        return (
+            old_value is None
+            and
+            new_value is None
         )
 
-    return result
+    try:
 
+        old = float(
+            old_value
+        )
 
-# ============================================================
-# SINGLE-FEATURE CANDIDATES
-# ============================================================
+        new = float(
+            new_value
+        )
+
+        if (
+            np.isfinite(old)
+            and
+            np.isfinite(new)
+        ):
+
+            return abs(
+                old - new
+            ) < 1e-12
+
+    except (
+        TypeError,
+        ValueError
+    ):
+        pass
+
+    return (
+        str(old_value).strip().lower()
+        ==
+        str(new_value).strip().lower()
+    )
 
 def generate_single_feature_candidates(
     patient,
     disease
 ):
+
+    disease = normalize_disease(
+        disease
+    )
 
     feature_names = MODEL_CONFIG[
         disease
@@ -1733,9 +2582,29 @@ def generate_single_feature_candidates(
         "features"
     ]
 
+    ordered_features = sorted(
+        feature_names,
+        key=lambda feature: (
+            feature_is_immutable(
+                disease,
+                feature
+            ),
+            feature_priority(
+                disease,
+                feature
+            )
+        )
+    )
+
     candidates = []
 
-    for feature in feature_names:
+    for feature in ordered_features:
+
+        if feature_is_immutable(
+            disease,
+            feature
+        ):
+            continue
 
         values = candidate_values_for_feature(
             patient,
@@ -1745,43 +2614,25 @@ def generate_single_feature_candidates(
 
         for value in values:
 
+            # Defensive guard: never create a fake "change".
+            if values_equal(
+                patient.get(feature),
+                value
+            ):
+                continue
+
             candidates.append({
-
-                feature: {
-
-                    "old":
-                        clean_value(
-                            patient.get(
-                                feature
-                            )
-                        ),
-
-                    "new":
-                        clean_value(
-                            value
-                        ),
-
-                    "normalized_change":
-                        round(
-                            calculate_change_magnitude(
-                                patient.get(
-                                    feature
-                                ),
-                                value
-                            ),
-                            6
-                        )
-
-                }
-
+                feature:
+                    make_change_details(
+                        patient,
+                        feature,
+                        value,
+                        disease=disease
+                    )
             })
 
     return candidates
 
-
-# ============================================================
-# MULTI-FEATURE CANDIDATES
-# ============================================================
 
 def generate_multi_feature_candidates(
     patient,
@@ -1789,6 +2640,10 @@ def generate_multi_feature_candidates(
     max_features_changed=3,
     max_candidates=MAX_TOTAL_CANDIDATES
 ):
+
+    disease = normalize_disease(
+        disease
+    )
 
     feature_names = MODEL_CONFIG[
         disease
@@ -1806,45 +2661,37 @@ def generate_multi_feature_candidates(
         )
     )
 
+    # Only mutable features participate.
+    mutable_features = [
+        feature
+        for feature in feature_names
+        if not feature_is_immutable(
+            disease,
+            feature
+        )
+    ]
+
+    # Preferred clinical-state features are searched first.
+    mutable_features = sorted(
+        mutable_features,
+        key=lambda feature: (
+            feature_priority(
+                disease,
+                feature
+            ),
+            feature
+        )
+    )
+
     feature_candidates = {}
 
-    # --------------------------------------------------------
-    # Candidate values for every feature.
-    # --------------------------------------------------------
-
-    for feature in feature_names:
+    for feature in mutable_features:
 
         values = candidate_values_for_feature(
             patient,
             disease,
             feature
         )
-
-        original = patient.get(
-            feature
-        )
-
-        # ----------------------------------------------------
-        # Keep values close to current value first.
-        # ----------------------------------------------------
-
-        try:
-
-            values = sorted(
-                values,
-                key=lambda value:
-                    abs(
-                        float(value)
-                        -
-                        float(original)
-                    )
-                if original is not None
-                else 0
-            )
-
-        except Exception:
-
-            pass
 
         feature_candidates[
             feature
@@ -1854,37 +2701,28 @@ def generate_multi_feature_candidates(
 
     candidates = []
 
-    # --------------------------------------------------------
-    # One, two and three feature changes.
-    # --------------------------------------------------------
-
     for number_of_changes in range(
-        1,
+        2,
         max_features_changed + 1
     ):
 
         for selected_features in itertools.combinations(
-            feature_names,
+            mutable_features,
             number_of_changes
         ):
 
             value_lists = [
-
                 feature_candidates.get(
                     feature,
                     []
                 )
-
-                for feature
-                in selected_features
-
+                for feature in selected_features
             ]
 
             if any(
                 len(values) == 0
                 for values in value_lists
             ):
-
                 continue
 
             for candidate_values in itertools.product(
@@ -1903,74 +2741,46 @@ def generate_multi_feature_candidates(
                         feature
                     )
 
-                    try:
-
-                        if (
-                            original is not None
-                            and
-                            abs(
-                                float(new_value)
-                                -
-                                float(original)
-                            ) < 1e-12
-                        ):
-
-                            valid = False
-                            break
-
-                    except (
-                        TypeError,
-                        ValueError
+                    # Never include unchanged features.
+                    if values_equal(
+                        original,
+                        new_value
                     ):
+                        valid = False
+                        break
 
-                        if str(new_value) == str(
-                            original
-                        ):
-
-                            valid = False
-                            break
+                    if not within_domain(
+                        feature,
+                        new_value
+                    ):
+                        valid = False
+                        break
 
                     changes[
                         feature
-                    ] = {
-
-                        "old":
-                            clean_value(
-                                original
-                            ),
-
-                        "new":
-                            clean_value(
-                                new_value
-                            ),
-
-                        "normalized_change":
-                            calculate_change_magnitude(
-                                original,
-                                new_value
-                            )
-
-                    }
+                    ] = make_change_details(
+                        patient,
+                        feature,
+                        new_value,
+                        disease=disease
+                    )
 
                 if not valid:
+                    continue
+
+                # Exactly N genuinely changed features.
+                if len(changes) != number_of_changes:
                     continue
 
                 candidates.append(
                     changes
                 )
 
-                if len(
-                    candidates
-                ) >= max_candidates:
-
+                if len(candidates) >= max_candidates:
                     return candidates
 
     return candidates
 
-
-# ============================================================
-# CANDIDATE DISTANCE
-# ============================================================
 
 def candidate_distance(
     changes
@@ -1987,7 +2797,6 @@ def candidate_distance(
             item,
             dict
         ):
-
             continue
 
         magnitude = item.get(
@@ -1996,7 +2805,6 @@ def candidate_distance(
         )
 
         try:
-
             total += float(
                 magnitude
             )
@@ -2009,7 +2817,6 @@ def candidate_distance(
             total += 1.0
 
     return total
-
 
 # ============================================================
 # BUILD CHANGED PATIENT
@@ -2044,15 +2851,59 @@ def evaluate_candidate(
     original_prediction
 ):
 
+    disease = normalize_disease(
+        disease
+    )
+
+    # Defensive cleanup:
+    # Never evaluate a candidate containing unchanged features.
+    cleaned_changes = {}
+
+    for feature, details in changes.items():
+
+        old_value = (
+            details.get("old")
+            if isinstance(details, dict)
+            else patient.get(feature)
+        )
+
+        new_value = (
+            details.get("new")
+            if isinstance(details, dict)
+            else details
+        )
+
+        if values_equal(
+            patient.get(feature),
+            new_value
+        ):
+            continue
+
+        if feature_is_immutable(
+            disease,
+            feature
+        ):
+            return None
+
+        cleaned_changes[
+            feature
+        ] = make_change_details(
+            patient,
+            feature,
+            new_value,
+            disease=disease
+        )
+
+    if not cleaned_changes:
+        return None
+
     candidate_patient = apply_changes(
         patient,
         {
             feature:
-                details[
-                    "new"
-                ]
+                details["new"]
             for feature, details
-            in changes.items()
+            in cleaned_changes.items()
         }
     )
 
@@ -2067,8 +2918,6 @@ def evaluate_candidate(
 
     except Exception as error:
 
-        # Keep search running if one malformed candidate
-        # cannot be processed.
         print(
             "Counterfactual candidate error:",
             repr(error)
@@ -2076,32 +2925,88 @@ def evaluate_candidate(
 
         return None
 
-    # --------------------------------------------------------
-    # Counterfactual must cross the decision boundary.
-    # --------------------------------------------------------
+    probability = float(
+        probability
+    )
 
-    if prediction == original_prediction:
+    # ------------------------------------------------------------
+    # Determine the actual production boundary.
+    # ------------------------------------------------------------
+    threshold = get_decision_threshold(
+        disease
+    )
 
+    expected_candidate_prediction = int(
+        probability >= threshold
+    )
+
+    # The probability and class MUST agree.
+    if (
+        int(prediction)
+        !=
+        expected_candidate_prediction
+    ):
+        return None
+
+    # ------------------------------------------------------------
+    # Must actually cross the model decision boundary.
+    # ------------------------------------------------------------
+    if int(prediction) == int(
+        original_prediction
+    ):
         return None
 
     number_of_changes = len(
-        changes
+        cleaned_changes
     )
 
     normalized_change = candidate_distance(
-        changes
+        cleaned_changes
+    )
+
+    plausibility_penalty = (
+        candidate_plausibility_penalty(
+            patient,
+            disease,
+            cleaned_changes
+        )
+    )
+
+    target_class = int(
+        prediction
+    )
+
+    direction_scores = [
+        _candidate_direction_score(
+            disease,
+            patient.get(feature),
+            details.get("new"),
+            feature,
+            target_class
+        )
+        for feature, details
+        in cleaned_changes.items()
+    ]
+
+    direction_score = (
+        float(
+            np.mean(
+                direction_scores
+            )
+        )
+        if direction_scores
+        else 0.5
     )
 
     return {
-
         "changes":
-            changes,
+            cleaned_changes,
 
         "prediction":
-            prediction,
+            target_class,
 
         "prediction_class":
-            prediction,
+            target_class,
 
         "probability":
             probability,
@@ -2122,45 +3027,228 @@ def evaluate_candidate(
             round(
                 normalized_change,
                 4
-            )
+            ),
 
+        "_disease":
+            disease,
+
+        "_boundary_margin":
+            round(
+                candidate_boundary_margin(
+                    probability,
+                    disease
+                ),
+                8
+            ),
+
+        "_plausibility_penalty":
+            round(
+                plausibility_penalty,
+                6
+            ),
+
+        "_direction_score":
+            round(
+                direction_score,
+                6
+            ),
+
+        "_feature_priority":
+            min(
+                feature_priority(
+                    disease,
+                    feature
+                )
+                for feature in cleaned_changes
+            )
+            if cleaned_changes
+            else 999
     }
 
 
-# ============================================================
-# SORT COUNTERFACTUALS
-# ============================================================
+def get_decision_threshold(
+    disease
+):
+    disease = normalize_disease(
+        disease
+    )
+
+    # Heart / Diabetes / CKD production models use model.predict().
+    # Their model decision threshold is therefore owned by the model.
+    # Stroke explicitly uses stroke_threshold.
+    if disease == "stroke":
+        return float(
+            stroke_threshold
+        )
+
+    return 0.5
+
+
+def candidate_boundary_margin(
+    probability,
+    disease
+):
+    """
+    Distance of a candidate probability from the decision boundary.
+
+    Smaller is better once the class has flipped: the counterfactual
+    lies closer to the model's actual decision boundary rather than
+    simply being an extreme point in the target class.
+    """
+
+    try:
+        return abs(
+            float(probability)
+            -
+            get_decision_threshold(
+                disease
+            )
+        )
+    except (
+        TypeError,
+        ValueError
+    ):
+        return 999999.0
+
+def _candidate_quality_key(
+    item
+):
+
+    disease = item.get(
+        "_disease",
+        "heart"
+    )
+
+    return (
+        # 1. Fewer real feature changes.
+        item.get(
+            "number_of_changes",
+            999
+        ),
+
+        # 2. Stay inside observed/reference distributions.
+        item.get(
+            "_plausibility_penalty",
+            999999
+        ),
+
+        # 3. Prefer candidates close to the actual
+        #    decision boundary after crossing it.
+        item.get(
+            "_boundary_margin",
+            candidate_boundary_margin(
+                item.get(
+                    "probability",
+                    0
+                ),
+                disease
+            )
+        ),
+
+        # 4. Prefer interpretable direction.
+        -item.get(
+            "_direction_score",
+            0.5
+        ),
+
+        # 5. Prefer smaller normalized movement.
+        item.get(
+            "normalized_change",
+            999999
+        ),
+
+        # 6. Stable feature-priority tie breaker.
+        item.get(
+            "_feature_priority",
+            999
+        )
+    )
+
 
 def sort_counterfactuals(
     counterfactuals
 ):
 
     return sorted(
-
         counterfactuals,
+        key=_candidate_quality_key
+    )
 
-        key=lambda item: (
 
+def select_diverse_counterfactuals(
+    counterfactuals,
+    max_results
+):
+
+    if not counterfactuals:
+        return []
+
+    ranked = sort_counterfactuals(
+        counterfactuals
+    )
+
+    selected = []
+
+    used_features = set()
+
+    # --------------------------------------------------------
+    # First pass:
+    # Prefer sparse candidates with different changed features.
+    # This prevents the UI from showing five near-identical
+    # counterfactuals.
+    # --------------------------------------------------------
+
+    for item in ranked:
+
+        if len(selected) >= max_results:
+            break
+
+        changed_features = set(
             item.get(
-                "number_of_changes",
-                999
-            ),
-
-            item.get(
-                "normalized_change",
-                999999
-            ),
-
-            -float(
-                item.get(
-                    "probability",
-                    0
-                )
-            )
-
+                "changes",
+                {}
+            ).keys()
         )
 
-    )
+        if not changed_features:
+            continue
+
+        if changed_features.isdisjoint(
+            used_features
+        ):
+
+            selected.append(
+                item
+            )
+
+            used_features.update(
+                changed_features
+            )
+
+    # --------------------------------------------------------
+    # Second pass:
+    # If there were not enough one-feature-diverse results,
+    # fill the remaining slots with the next best valid
+    # counterfactuals.
+    # --------------------------------------------------------
+
+    if len(selected) < max_results:
+
+        for item in ranked:
+
+            if len(selected) >= max_results:
+                break
+
+            if item in selected:
+                continue
+
+            selected.append(
+                item
+            )
+
+    return selected[
+        :max_results
+    ]
 
 
 # ============================================================
@@ -2277,18 +3365,53 @@ def find_counterfactuals(
     )
 
     # --------------------------------------------------------
-    # Generate candidates.
+    # Search in two stages:
+    #
+    # 1) Single-feature counterfactuals first. These are the
+    #    sparsest and easiest to interpret.
+    #
+    # 2) Multi-feature combinations only when needed to obtain
+    #    enough valid/diverse counterfactuals.
     # --------------------------------------------------------
 
-    candidates = generate_multi_feature_candidates(
-        patient_dict,
-        disease,
-        max_features_changed=max_features_changed,
-        max_candidates=MAX_TOTAL_CANDIDATES
+    single_candidates = (
+        generate_single_feature_candidates(
+            patient_dict,
+            disease
+        )
+    )
+
+    multi_candidates = []
+
+    # We only need a bounded number of multi-feature candidates
+    # after single-feature candidates have been examined.
+    if max_features_changed > 1:
+        multi_candidates = (
+            generate_multi_feature_candidates(
+                patient_dict,
+                disease,
+                max_features_changed=max_features_changed,
+                max_candidates=MAX_TOTAL_CANDIDATES
+            )
+        )
+
+    candidates = (
+        single_candidates +
+        multi_candidates
     )
 
     print(
-        "Generated Candidates:",
+        "Single-feature candidates:",
+        len(single_candidates)
+    )
+
+    print(
+        "Multi-feature candidates:",
+        len(multi_candidates)
+    )
+
+    print(
+        "Total candidates:",
         len(candidates)
     )
 
@@ -2314,11 +3437,9 @@ def find_counterfactuals(
         )
 
         if evaluated is None:
-
             continue
 
         signature = tuple(
-
             (
                 feature,
                 str(
@@ -2331,18 +3452,14 @@ def find_counterfactuals(
                         "new"
                     )
                 )
-
             )
-
             for feature, details
             in sorted(
                 changes.items()
             )
-
         )
 
         if signature in seen:
-
             continue
 
         seen.add(
@@ -2352,6 +3469,14 @@ def find_counterfactuals(
         found.append(
             evaluated
         )
+
+        # Once we have many valid candidates, the final
+        # diversity selector will choose the best five.
+        if len(found) >= max(
+            max_results * 20,
+            50
+        ):
+            break
 
     print(
         "Candidates Tested:",
@@ -2364,16 +3489,13 @@ def find_counterfactuals(
     )
 
     # --------------------------------------------------------
-    # Sort and return best results.
+    # Select sparse, plausible and diverse counterfactuals.
     # --------------------------------------------------------
 
-    found = sort_counterfactuals(
-        found
+    found = select_diverse_counterfactuals(
+        found,
+        max_results
     )
-
-    found = found[
-        :max_results
-    ]
 
     print(
         "Returning:",
@@ -2516,10 +3638,10 @@ def get_prediction_text(
     if disease == "stroke":
 
         return (
-            "Stroke Risk"
+            "Stroke"
             if prediction == 1
             else
-            "No Stroke Risk"
+            "No Stroke"
         )
 
     return str(
@@ -2547,6 +3669,149 @@ def normalize_counterfactuals(
         disease
     )
 
+    def display_value(
+        feature,
+        value
+    ):
+        # --------------------------------------------------------
+        # Stroke category decoding for clinician-facing output.
+        # The model may internally use numeric category codes, but
+        # the API/UI should expose the original category labels.
+        # --------------------------------------------------------
+        if disease == "stroke":
+
+            try:
+                code = int(
+                    float(value)
+                )
+            except (
+                TypeError,
+                ValueError
+            ):
+                return value
+
+            mappings = {
+                "gender":
+                    STROKE_GENDER_VALUES,
+
+                "ever_married":
+                    STROKE_MARRIED_VALUES,
+
+                "work_type":
+                    STROKE_WORK_VALUES,
+
+                "Residence_type":
+                    STROKE_RESIDENCE_VALUES,
+
+                "smoking_status":
+                    STROKE_SMOKING_VALUES
+            }
+
+            mapping = mappings.get(
+                feature
+            )
+
+            if mapping is not None:
+                return mapping.get(
+                    code,
+                    value
+                )
+
+        # --------------------------------------------------------
+        # Diabetes frontend representation.
+        # --------------------------------------------------------
+        if disease == "diabetes":
+
+            if feature == "gender":
+
+                try:
+                    return (
+                        "Male"
+                        if int(float(value)) == 1
+                        else "Female"
+                    )
+                except (
+                    TypeError,
+                    ValueError
+                ):
+                    return value
+
+            if feature in {
+                "polyuria",
+                "polydipsia",
+                "sudden_weight_loss",
+                "weakness",
+                "polyphagia",
+                "genital_thrush",
+                "visual_blurring",
+                "itching",
+                "irritability",
+                "delayed_healing",
+                "partial_paresis",
+                "muscle_stiffness",
+                "alopecia",
+                "obesity"
+            }:
+
+                try:
+                    return (
+                        "Yes"
+                        if int(float(value)) == 1
+                        else "No"
+                    )
+                except (
+                    TypeError,
+                    ValueError
+                ):
+                    return value
+
+        # --------------------------------------------------------
+        # CKD frontend representation.
+        # --------------------------------------------------------
+        if disease == "ckd":
+
+            if feature == "appet":
+
+                try:
+                    return (
+                        "Poor"
+                        if int(float(value)) == 1
+                        else "Good"
+                    )
+                except (
+                    TypeError,
+                    ValueError
+                ):
+                    return value
+
+            if feature in {
+                "rbc",
+                "pc",
+                "pcc",
+                "ba",
+                "htn",
+                "dm",
+                "cad",
+                "pe",
+                "ane"
+            }:
+
+                try:
+                    return (
+                        "Yes"
+                        if int(float(value)) == 1
+                        else "No"
+                    )
+                except (
+                    TypeError,
+                    ValueError
+                ):
+                    return value
+
+        return clean_value(
+            value
+        )
+
     normalized = []
 
     for cf in counterfactuals:
@@ -2555,7 +3820,6 @@ def normalize_counterfactuals(
             cf,
             dict
         ):
-
             continue
 
         prediction = cf.get(
@@ -2576,7 +3840,7 @@ def normalize_counterfactuals(
             ValueError
         ):
 
-            prediction_int = prediction
+            continue
 
         changes = cf.get(
             "changes",
@@ -2591,6 +3855,12 @@ def normalize_counterfactuals(
         ):
 
             for feature, value in changes.items():
+
+                if feature_is_immutable(
+                    disease,
+                    feature
+                ):
+                    continue
 
                 if isinstance(
                     value,
@@ -2617,37 +3887,62 @@ def normalize_counterfactuals(
                         )
                     )
 
-                    normalized_changes[
-                        feature
-                    ] = {
+                elif isinstance(
+                    value,
+                    (list, tuple)
+                ):
 
-                        "old":
-                            clean_value(
-                                old_value
-                            ),
-
-                        "new":
-                            clean_value(
-                                new_value
-                            )
-
-                    }
+                    if len(value) >= 2:
+                        old_value = value[0]
+                        new_value = value[1]
+                    elif len(value) == 1:
+                        old_value = None
+                        new_value = value[0]
+                    else:
+                        old_value = None
+                        new_value = None
 
                 else:
 
-                    normalized_changes[
-                        feature
-                    ] = {
+                    old_value = None
+                    new_value = value
 
-                        "old":
-                            None,
+                # Never expose an unchanged feature as a change.
+                if (
+                    old_value is not None
+                    and
+                    values_equal(
+                        old_value,
+                        new_value
+                    )
+                ):
+                    continue
 
-                        "new":
-                            clean_value(
-                                value
-                            )
+                normalized_changes[
+                    feature
+                ] = {
+                    "old":
+                        display_value(
+                            feature,
+                            old_value
+                        ),
 
-                    }
+                    "new":
+                        display_value(
+                            feature,
+                            new_value
+                        )
+                }
+
+        # The number of changes is always recalculated from the
+        # final cleaned change dictionary. Never trust a stale value
+        # supplied by a caller or older backend version.
+        number_of_changes = len(
+            normalized_changes
+        )
+
+        if number_of_changes == 0:
+            continue
 
         probability = cf.get(
             "probability",
@@ -2657,23 +3952,23 @@ def normalize_counterfactuals(
             )
         )
 
-        # ----------------------------------------------------
-        # Keep probability in the backend's normal
-        # 0-1 representation.
-        # ----------------------------------------------------
-
         try:
 
             probability = float(
                 probability
             )
 
+            if not (
+                0.0 <= probability <= 1.0
+            ):
+                continue
+
         except (
             TypeError,
             ValueError
         ):
 
-            probability = 0.0
+            continue
 
         normalized_change = cf.get(
             "normalized_change",
@@ -2689,34 +3984,17 @@ def normalize_counterfactuals(
                 normalized_change
             )
 
+            if not np.isfinite(
+                normalized_change
+            ):
+                normalized_change = 0.0
+
         except (
             TypeError,
             ValueError
         ):
 
             normalized_change = 0.0
-
-        number_of_changes = cf.get(
-            "number_of_changes",
-            len(
-                normalized_changes
-            )
-        )
-
-        try:
-
-            number_of_changes = int(
-                number_of_changes
-            )
-
-        except (
-            TypeError,
-            ValueError
-        ):
-
-            number_of_changes = len(
-                normalized_changes
-            )
 
         normalized.append({
 
@@ -2760,10 +4038,6 @@ def normalize_counterfactuals(
 
     return normalized
 
-
-# ============================================================
-# HIGH-LEVEL EXPLANATION
-# ============================================================
 
 def generate_counterfactual_explanation(
     features,
