@@ -35,7 +35,11 @@ import itertools
 # =========================================================
 
 app = Flask(__name__)
-
+CORS(
+    app,
+    resources={r"/*": {"origins": "https://clinical-cdss-frontend.onrender.com"}},
+    supports_credentials=True
+)
 
 # =========================================================
 # JWT CONFIGURATION
@@ -47,14 +51,6 @@ app.config["JWT_SECRET_KEY"] = os.environ.get(
 )
 
 jwt = JWTManager(app)
-
-
-# =========================================================
-# CORS
-# =========================================================
-
-CORS(app)
-
 
 # =========================================================
 # DATABASE INITIALIZATION
