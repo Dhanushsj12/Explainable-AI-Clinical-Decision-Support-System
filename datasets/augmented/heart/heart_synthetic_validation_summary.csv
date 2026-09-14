@@ -1,0 +1,2 @@
+real_train_rows,synthetic_rows,columns,missing_values,exact_duplicates,average_correlation_difference
+242,50000,15,0,0,0.1026

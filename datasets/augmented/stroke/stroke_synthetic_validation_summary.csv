@@ -1,0 +1,2 @@
+real_train_rows,synthetic_rows,augmented_rows,columns,missing_values,exact_duplicates,target_values,average_correlation_difference,method
+4088,50000,54088,22,0,0,"0,1",0.0424,SDV Gaussian Copula

@@ -33,29 +33,175 @@ BASE_DIR = os.path.abspath(
 # ==========================================
 # Heart Disease LIME
 # ==========================================
+#
+# IMPORTANT:
+# The final Heart model was trained using:
+#
+#   242 real training rows
+#   + 5,000 synthetic rows
+#   = 5,242 training rows
+#
+# Therefore, LIME should use the same
+# real + synthetic training distribution
+# as its background data.
+#
+# The test set is NOT used here.
+# ==========================================
 
-heart_df = pd.read_csv(
-    os.path.join(
-        BASE_DIR,
-        "datasets",
-        "processed",
-        "heart_preprocessed.csv"
+
+HEART_REAL_TRAIN_FILE = os.path.join(
+    BASE_DIR,
+    "datasets",
+    "augmented",
+    "heart",
+    "heart_train_real.csv"
+)
+
+HEART_SYNTHETIC_TRAIN_FILE = os.path.join(
+    BASE_DIR,
+    "datasets",
+    "augmented",
+    "heart",
+    "heart_train_synthetic.csv"
+)
+
+
+# ==========================================
+# Load Real Heart Training Data
+# ==========================================
+
+heart_real_df = pd.read_csv(
+    HEART_REAL_TRAIN_FILE
+)
+
+
+# ==========================================
+# Load Synthetic Heart Training Data
+# ==========================================
+
+heart_synthetic_df = pd.read_csv(
+    HEART_SYNTHETIC_TRAIN_FILE
+)
+
+
+# ==========================================
+# Remove data_source Column
+# ==========================================
+
+if "data_source" in heart_real_df.columns:
+
+    heart_real_df = heart_real_df.drop(
+        columns=["data_source"]
+    )
+
+
+if "data_source" in heart_synthetic_df.columns:
+
+    heart_synthetic_df = heart_synthetic_df.drop(
+        columns=["data_source"]
+    )
+
+
+# ==========================================
+# Heart Feature Names
+# ==========================================
+
+HEART_FEATURES = [
+    "age",
+    "sex",
+    "cp",
+    "trestbps",
+    "chol",
+    "fbs",
+    "restecg",
+    "thalach",
+    "exang",
+    "oldpeak",
+    "slope",
+    "ca",
+    "thal"
+]
+
+
+# ==========================================
+# Select Heart Features Only
+# ==========================================
+
+heart_real_X = heart_real_df[
+    HEART_FEATURES
+]
+
+heart_synthetic_X = heart_synthetic_df[
+    HEART_FEATURES
+]
+
+
+# ==========================================
+# Combine Real + Synthetic Data
+# ==========================================
+
+heart_X_train = pd.concat(
+    [
+        heart_real_X,
+        heart_synthetic_X
+    ],
+    ignore_index=True
+)
+
+
+# ==========================================
+# Make Sure Feature Order Is Correct
+# ==========================================
+
+heart_X_train = heart_X_train[
+    HEART_FEATURES
+]
+
+
+# ==========================================
+# Convert to Numeric
+# ==========================================
+
+heart_X_train = heart_X_train.apply(
+    pd.to_numeric,
+    errors="coerce"
+)
+
+
+# ==========================================
+# Handle Missing Values
+# ==========================================
+
+if heart_X_train.isnull().any().any():
+
+    heart_X_train = heart_X_train.fillna(
+        heart_X_train.median()
+    )
+
+
+# ==========================================
+# Scale Heart Training Data
+# ==========================================
+
+heart_X_train_scaled = (
+    heart_scaler.transform(
+        heart_X_train
     )
 )
 
-heart_X_train = heart_df.drop(
-    "target",
-    axis=1
-)
 
-heart_X_train_scaled = heart_scaler.transform(
-    heart_X_train
-)
+# ==========================================
+# Heart LIME Feature Names
+# ==========================================
 
 heart_feature_names = (
-    heart_X_train.columns.tolist()
+    HEART_FEATURES
 )
 
+
+# ==========================================
+# Create Heart LIME Explainer
+# ==========================================
 
 heart_explainer = LimeTabularExplainer(
 
@@ -88,7 +234,11 @@ diabetes_df = pd.read_csv(
     )
 )
 
-diabetes_X_train_scaled = diabetes_df
+
+diabetes_X_train_scaled = (
+    diabetes_df
+)
+
 
 diabetes_feature_names = (
     diabetes_df.columns.tolist()
@@ -97,7 +247,9 @@ diabetes_feature_names = (
 
 diabetes_explainer = LimeTabularExplainer(
 
-    training_data=diabetes_X_train_scaled.values,
+    training_data=(
+        diabetes_X_train_scaled.values
+    ),
 
     feature_names=diabetes_feature_names,
 
@@ -126,7 +278,11 @@ ckd_df = pd.read_csv(
     )
 )
 
-ckd_X_train_scaled = ckd_df
+
+ckd_X_train_scaled = (
+    ckd_df
+)
+
 
 ckd_feature_names = (
     ckd_df.columns.tolist()
@@ -135,7 +291,9 @@ ckd_feature_names = (
 
 ckd_explainer = LimeTabularExplainer(
 
-    training_data=ckd_X_train_scaled.values,
+    training_data=(
+        ckd_X_train_scaled.values
+    ),
 
     feature_names=ckd_feature_names,
 
@@ -162,9 +320,11 @@ stroke_x_train_path = os.path.join(
     "x_train.csv"
 )
 
+
 stroke_X_train_scaled = pd.read_csv(
     stroke_x_train_path
 )
+
 
 stroke_X_train_scaled = (
     stroke_X_train_scaled.values
@@ -327,8 +487,10 @@ def preprocess_stroke_for_lime(features):
     # Scale using training scaler
     # --------------------------------------
 
-    patient_scaled = stroke_scaler.transform(
-        processed_df
+    patient_scaled = (
+        stroke_scaler.transform(
+            processed_df
+        )
     )
 
     return patient_scaled
@@ -338,7 +500,10 @@ def preprocess_stroke_for_lime(features):
 # LIME Function
 # ==========================================
 
-def lime_explain(features, disease="heart"):
+def lime_explain(
+    features,
+    disease="heart"
+):
 
     # ======================================
     # Heart Disease
@@ -347,14 +512,45 @@ def lime_explain(features, disease="heart"):
     if disease == "heart":
 
         patient = np.array(
-            features
+            features,
+            dtype=float
         ).reshape(1, -1)
+
+        # ----------------------------------
+        # Validate feature count
+        # ----------------------------------
+
+        if patient.shape[1] != len(
+            HEART_FEATURES
+        ):
+
+            raise ValueError(
+                "Heart Disease requires "
+                "exactly 13 features"
+            )
+
+        # ----------------------------------
+        # Create DataFrame
+        # ----------------------------------
+
+        patient_df = pd.DataFrame(
+            patient,
+            columns=HEART_FEATURES
+        )
+
+        # ----------------------------------
+        # Scale using final heart scaler
+        # ----------------------------------
 
         patient_scaled = (
             heart_scaler.transform(
-                patient
+                patient_df
             )
         )
+
+        # ----------------------------------
+        # Generate LIME explanation
+        # ----------------------------------
 
         explanation = (
             heart_explainer.explain_instance(

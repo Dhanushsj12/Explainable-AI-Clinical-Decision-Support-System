@@ -16,9 +16,30 @@ from model_loader import (
 )
 
 
-# =========================
-# CKD Feature Names
-# =========================
+# ============================================================
+# HEART DISEASE FEATURE NAMES
+# ============================================================
+
+HEART_FEATURES = [
+    "age",
+    "sex",
+    "cp",
+    "trestbps",
+    "chol",
+    "fbs",
+    "restecg",
+    "thalach",
+    "exang",
+    "oldpeak",
+    "slope",
+    "ca",
+    "thal"
+]
+
+
+# ============================================================
+# CKD FEATURE NAMES
+# ============================================================
 
 CKD_FEATURES = [
     "age",
@@ -48,9 +69,9 @@ CKD_FEATURES = [
 ]
 
 
-# =========================
-# Stroke Raw Feature Names
-# =========================
+# ============================================================
+# STROKE RAW FEATURE NAMES
+# ============================================================
 
 STROKE_FEATURES = [
     "gender",
@@ -66,23 +87,71 @@ STROKE_FEATURES = [
 ]
 
 
-# =========================
-# Heart Disease Prediction
-# =========================
+# ============================================================
+# HEART DISEASE PREDICTION
+# ============================================================
 
 def predict_heart(patient_data):
 
-    patient = np.array(
-        patient_data
-    ).reshape(1, -1)
+    # --------------------------------------------------------
+    # Create DataFrame using exact training feature names
+    # --------------------------------------------------------
+
+    patient = pd.DataFrame(
+        [patient_data],
+        columns=HEART_FEATURES
+    )
+
+    # --------------------------------------------------------
+    # Convert values to numeric
+    # --------------------------------------------------------
+
+    patient = patient.apply(
+        pd.to_numeric,
+        errors="coerce"
+    )
+
+    # --------------------------------------------------------
+    # Validate number of features
+    # --------------------------------------------------------
+
+    if len(patient_data) != len(HEART_FEATURES):
+        raise ValueError(
+            f"Heart Disease model expects "
+            f"{len(HEART_FEATURES)} features, "
+            f"but received {len(patient_data)}."
+        )
+
+    # --------------------------------------------------------
+    # Check for invalid values
+    # --------------------------------------------------------
+
+    if patient.isnull().any().any():
+        raise ValueError(
+            "Invalid or missing values in Heart Disease input."
+        )
+
+    # --------------------------------------------------------
+    # Scale using final 5K augmented model scaler
+    # --------------------------------------------------------
 
     patient_scaled = heart_scaler.transform(
         patient
     )
 
+    # --------------------------------------------------------
+    # Prediction
+    # --------------------------------------------------------
+
     prediction = int(
-        heart_model.predict(patient_scaled)[0]
+        heart_model.predict(
+            patient_scaled
+        )[0]
     )
+
+    # --------------------------------------------------------
+    # Probability
+    # --------------------------------------------------------
 
     probability = float(
         heart_model.predict_proba(
@@ -90,11 +159,19 @@ def predict_heart(patient_data):
         )[0][1]
     )
 
+    # --------------------------------------------------------
+    # Disease label
+    # --------------------------------------------------------
+
     disease = (
         "No Heart Disease"
         if prediction == 0
         else "Heart Disease"
     )
+
+    # --------------------------------------------------------
+    # Confidence
+    # --------------------------------------------------------
 
     confidence = round(
         probability * 100,
@@ -108,9 +185,9 @@ def predict_heart(patient_data):
     }
 
 
-# =========================
-# Diabetes Prediction
-# =========================
+# ============================================================
+# DIABETES PREDICTION
+# ============================================================
 
 def predict_diabetes(patient_data):
 
@@ -118,19 +195,37 @@ def predict_diabetes(patient_data):
         patient_data
     ).reshape(1, -1)
 
+    # --------------------------------------------------------
+    # Scale
+    # --------------------------------------------------------
+
     patient_scaled = diabetes_scaler.transform(
         patient
     )
 
+    # --------------------------------------------------------
+    # Prediction
+    # --------------------------------------------------------
+
     prediction = int(
-        diabetes_model.predict(patient_scaled)[0]
+        diabetes_model.predict(
+            patient_scaled
+        )[0]
     )
+
+    # --------------------------------------------------------
+    # Probability
+    # --------------------------------------------------------
 
     probability = float(
         diabetes_model.predict_proba(
             patient_scaled
         )[0][1]
     )
+
+    # --------------------------------------------------------
+    # Disease label
+    # --------------------------------------------------------
 
     disease = (
         "No Diabetes"
@@ -150,30 +245,52 @@ def predict_diabetes(patient_data):
     }
 
 
-# =========================
-# CKD Prediction
-# =========================
+# ============================================================
+# CKD PREDICTION
+# ============================================================
 
 def predict_ckd(patient_data):
+
+    # --------------------------------------------------------
+    # Create DataFrame using exact CKD feature names
+    # --------------------------------------------------------
 
     patient = pd.DataFrame(
         [patient_data],
         columns=CKD_FEATURES
     )
 
+    # --------------------------------------------------------
+    # Scale
+    # --------------------------------------------------------
+
     patient_scaled = ckd_scaler.transform(
         patient
     )
 
+    # --------------------------------------------------------
+    # Prediction
+    # --------------------------------------------------------
+
     prediction = int(
-        ckd_model.predict(patient_scaled)[0]
+        ckd_model.predict(
+            patient_scaled
+        )[0]
     )
+
+    # --------------------------------------------------------
+    # Probability
+    # --------------------------------------------------------
 
     probability = float(
         ckd_model.predict_proba(
             patient_scaled
         )[0][1]
     )
+
+    # --------------------------------------------------------
+    # Disease label
+    # --------------------------------------------------------
 
     disease = (
         "No CKD"
@@ -193,24 +310,24 @@ def predict_ckd(patient_data):
     }
 
 
-# =========================
-# Stroke Prediction
-# =========================
+# ============================================================
+# STROKE PREDICTION
+# ============================================================
 
 def predict_stroke(patient_data):
 
-    # -------------------------
+    # --------------------------------------------------------
     # Create raw patient DataFrame
-    # -------------------------
+    # --------------------------------------------------------
 
     patient = pd.DataFrame(
         [patient_data],
         columns=STROKE_FEATURES
     )
 
-    # -------------------------
+    # --------------------------------------------------------
     # Numerical columns
-    # -------------------------
+    # --------------------------------------------------------
 
     numerical_columns = [
         "age",
@@ -220,24 +337,30 @@ def predict_stroke(patient_data):
         "bmi"
     ]
 
+    # --------------------------------------------------------
     # Convert numerical values
+    # --------------------------------------------------------
+
     for column in numerical_columns:
+
         patient[column] = pd.to_numeric(
             patient[column],
             errors="coerce"
         )
 
-    # -------------------------
+    # --------------------------------------------------------
     # Impute numerical values
-    # -------------------------
+    # --------------------------------------------------------
 
-    patient[numerical_columns] = stroke_imputer.transform(
-        patient[numerical_columns]
+    patient[numerical_columns] = (
+        stroke_imputer.transform(
+            patient[numerical_columns]
+        )
     )
 
-    # -------------------------
+    # --------------------------------------------------------
     # Categorical columns
-    # -------------------------
+    # --------------------------------------------------------
 
     categorical_columns = [
         "gender",
@@ -247,9 +370,9 @@ def predict_stroke(patient_data):
         "smoking_status"
     ]
 
-    # -------------------------
+    # --------------------------------------------------------
     # One-hot encoding
-    # -------------------------
+    # --------------------------------------------------------
 
     patient_encoded = pd.get_dummies(
         patient,
@@ -257,31 +380,31 @@ def predict_stroke(patient_data):
         drop_first=False
     )
 
-    # -------------------------
-    # Match training features
-    # -------------------------
+    # --------------------------------------------------------
+    # Match exact training features
+    # --------------------------------------------------------
 
     patient_encoded = patient_encoded.reindex(
         columns=stroke_feature_names,
         fill_value=0
     )
 
-    # Make sure exact feature order is used
+    # Ensure exact feature order
     patient_encoded = patient_encoded[
         stroke_feature_names
     ]
 
-    # -------------------------
-    # Standard Scaling
-    # -------------------------
+    # --------------------------------------------------------
+    # Standard scaling
+    # --------------------------------------------------------
 
     patient_scaled = stroke_scaler.transform(
         patient_encoded
     )
 
-    # -------------------------
-    # Stroke Probability
-    # -------------------------
+    # --------------------------------------------------------
+    # Stroke probability
+    # --------------------------------------------------------
 
     probability = float(
         stroke_model.predict_proba(
@@ -289,13 +412,17 @@ def predict_stroke(patient_data):
         )[0][1]
     )
 
-    # -------------------------
+    # --------------------------------------------------------
     # Apply selected threshold
-    # -------------------------
+    # --------------------------------------------------------
 
     prediction = int(
         probability >= stroke_threshold
     )
+
+    # --------------------------------------------------------
+    # Disease label
+    # --------------------------------------------------------
 
     disease = (
         "No Stroke"
@@ -315,9 +442,9 @@ def predict_stroke(patient_data):
     }
 
 
-# =========================
-# General Prediction
-# =========================
+# ============================================================
+# GENERAL PREDICTION
+# ============================================================
 
 def predict(patient_data, disease="heart"):
 
@@ -339,6 +466,7 @@ def predict(patient_data, disease="heart"):
             patient_data
         )
 
+    # Default: Heart Disease
     return predict_heart(
         patient_data
     )

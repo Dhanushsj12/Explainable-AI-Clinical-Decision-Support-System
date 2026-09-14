@@ -37,3 +37,5 @@ backend/reports/*.pdf
 # Environment variables
 .env
 *.env
+# Node.js dependencies
+node_modules/

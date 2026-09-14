@@ -1,0 +1,2 @@
+training_real_rows,training_synthetic_rows,training_total_rows,testing_real_rows,accuracy,precision,recall,f1_score,roc_auc
+242,5000,5242,61,0.9016393442622951,0.9016393442622951,0.9016393442622951,0.9016393442622951,0.928030303030303
