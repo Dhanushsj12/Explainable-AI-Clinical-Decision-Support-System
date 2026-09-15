@@ -1475,7 +1475,45 @@ def extract_probability(result):
 
 # =========================================================
 # GENERIC COUNTERFACTUAL SEARCH
+#
+# PERFORMANCE FIX (Render worker timeout / OOM):
+#
+# The previous version ran a full two-feature combinatorial
+# search across EVERY feature of the disease. For CKD (24
+# features) that is C(24,2) = 276 pairs, each tried against
+# up to 9 value combinations, i.e. up to ~2,484 individual
+# calls into predict() (a full RandomForest predict_proba
+# ensemble pass) in a single HTTP request. On Render's free
+# tier this exceeded both the memory ceiling and Gunicorn's
+# default 30s worker timeout, producing:
+#
+#   [CRITICAL] WORKER TIMEOUT
+#   Worker was sent SIGKILL! Perhaps out of memory?
+#
+# This version bounds the search in two independent ways so
+# no disease/feature-count combination can ever runaway:
+#
+#   1. Two-feature pairing only considers a small subset of
+#      features (PAIR_SEARCH_FEATURE_LIMIT) instead of all of
+#      them, e.g. C(8,2)=28 pairs instead of C(24,2)=276.
+#
+#   2. A hard global cap (MAX_TOTAL_PREDICT_CALLS) on the total
+#      number of predict() calls made across BOTH the one- and
+#      two-feature phases combined, regardless of disease.
+#
+# The one-feature search, candidate value grids, ranking, and
+# result shape are all unchanged -- this only shrinks how much
+# work is attempted, so results already working (e.g. Heart,
+# which uses its own dedicated counterfactual_heart.py path)
+# are completely unaffected.
 # =========================================================
+
+MAX_TOTAL_PREDICT_CALLS = 150
+
+PAIR_SEARCH_FEATURE_LIMIT = 8
+
+PAIR_SEARCH_MAX_COMBOS = 60
+
 
 def generic_counterfactual_search(
     features,
@@ -1493,11 +1531,17 @@ def generic_counterfactual_search(
 
     candidates = []
 
+    predict_calls = 0
+
     # -----------------------------------------------------
     # First search one-feature changes.
     # -----------------------------------------------------
 
     for feature in names:
+
+        if predict_calls >= MAX_TOTAL_PREDICT_CALLS:
+
+            break
 
         values = candidate_values(
             disease,
@@ -1506,6 +1550,10 @@ def generic_counterfactual_search(
         )
 
         for value in values:
+
+            if predict_calls >= MAX_TOTAL_PREDICT_CALLS:
+
+                break
 
             if value == original.get(feature):
 
@@ -1534,6 +1582,8 @@ def generic_counterfactual_search(
                     vector,
                     disease
                 )
+
+                predict_calls += 1
 
                 prediction_class = extract_prediction(
                     prediction_result
@@ -1607,11 +1657,22 @@ def generic_counterfactual_search(
 
     # -----------------------------------------------------
     # Two-feature search.
+    #
+    # Bounded to a small subset of features and a hard combo
+    # cap so this phase can never explode regardless of how
+    # many total features the disease has (see comment above
+    # the function for the full explanation).
     # -----------------------------------------------------
 
-    if len(candidates) < max_results:
+    if (
+        len(candidates) < max_results
+        and
+        predict_calls < MAX_TOTAL_PREDICT_CALLS
+    ):
 
-        important_features = names[:]
+        important_features = names[
+            :PAIR_SEARCH_FEATURE_LIMIT
+        ]
 
         pair_count = 0
 
@@ -1620,21 +1681,37 @@ def generic_counterfactual_search(
             2
         ):
 
+            if (
+                predict_calls >= MAX_TOTAL_PREDICT_CALLS
+                or
+                pair_count >= PAIR_SEARCH_MAX_COMBOS
+            ):
+
+                break
+
             values_a = candidate_values(
                 disease,
                 feature_a,
                 original.get(feature_a)
-            )[:3]
+            )[:2]
 
             values_b = candidate_values(
                 disease,
                 feature_b,
                 original.get(feature_b)
-            )[:3]
+            )[:2]
 
             for value_a in values_a:
 
                 for value_b in values_b:
+
+                    if (
+                        predict_calls >= MAX_TOTAL_PREDICT_CALLS
+                        or
+                        pair_count >= PAIR_SEARCH_MAX_COMBOS
+                    ):
+
+                        break
 
                     if (
                         value_a == original.get(feature_a)
@@ -1669,6 +1746,8 @@ def generic_counterfactual_search(
                             vector,
                             disease
                         )
+
+                        predict_calls += 1
 
                         prediction_class = extract_prediction(
                             prediction_result
@@ -1756,15 +1835,11 @@ def generic_counterfactual_search(
 
                     pair_count += 1
 
-                    if pair_count >= 1000:
-
-                        break
-
-                if pair_count >= 1000:
+                if pair_count >= PAIR_SEARCH_MAX_COMBOS:
 
                     break
 
-            if pair_count >= 1000:
+            if pair_count >= PAIR_SEARCH_MAX_COMBOS:
 
                 break
 
