@@ -31,7 +31,7 @@ np.random.seed(RANDOM_SEED)
 
 MAX_RESULTS = 5
 MAX_FEATURES_CHANGED = 2
-MAX_TOTAL_CANDIDATES = 200
+MAX_TOTAL_CANDIDATES = 500
 MAX_VALUES_PER_FEATURE = 8
 
 
@@ -2565,9 +2565,73 @@ def candidate_values_for_feature(
         original
     )
 
-    # Explicitly constrain Stroke categorical variables to their
-    # legitimate encoded domain.
-    if disease == "stroke":
+    # Explicit categorical domains.
+    if disease == "heart":
+
+        if feature == "sex":
+            values = [0, 1]
+
+        elif feature == "cp":
+            values = [0, 1, 2, 3]
+
+        elif feature == "fbs":
+            values = [0, 1]
+
+        elif feature == "restecg":
+            values = [0, 1, 2]
+
+        elif feature == "exang":
+            values = [0, 1]
+
+        elif feature == "slope":
+            values = [0, 1, 2]
+
+        elif feature == "ca":
+            values = [0, 1, 2, 3]
+
+        elif feature == "thal":
+            values = [0, 1, 2, 3]
+
+    elif disease == "diabetes":
+
+        if feature == "gender":
+            values = [0, 1]
+
+        elif feature in {
+            "polyuria",
+            "polydipsia",
+            "sudden_weight_loss",
+            "weakness",
+            "polyphagia",
+            "genital_thrush",
+            "visual_blurring",
+            "itching",
+            "irritability",
+            "delayed_healing",
+            "partial_paresis",
+            "muscle_stiffness",
+            "alopecia",
+            "obesity"
+        }:
+            values = [0, 1]
+
+    elif disease == "ckd":
+
+        if feature in {
+            "rbc",
+            "pc",
+            "pcc",
+            "ba",
+            "htn",
+            "dm",
+            "cad",
+            "appet",
+            "pe",
+            "ane"
+        }:
+            values = [0, 1]
+
+    elif disease == "stroke":
 
         if feature == "gender":
             values = [0, 1, 2]
@@ -2601,8 +2665,6 @@ def candidate_values_for_feature(
         ):
             continue
 
-        # Binary/categorical variables must remain in their
-        # legitimate finite state set.
         if (
             feature in CATEGORICAL_FEATURES.get(
                 disease,
@@ -2616,16 +2678,30 @@ def candidate_values_for_feature(
 
             if np.isfinite(numeric):
 
-                if disease == "heart" and feature == "sex":
-                    if int(numeric) not in {0, 1}:
+                if disease == "heart":
+
+                    if feature == "sex" and int(numeric) not in {0, 1}:
                         continue
 
-                elif disease == "heart" and feature in {"cp", "thal"}:
-                    if int(numeric) < 0:
+                    if feature == "cp" and int(numeric) not in {0, 1, 2, 3}:
                         continue
 
-                elif disease == "heart" and feature in {"restecg", "slope", "ca"}:
-                    if int(numeric) < 0:
+                    if feature == "fbs" and int(numeric) not in {0, 1}:
+                        continue
+
+                    if feature == "restecg" and int(numeric) not in {0, 1, 2}:
+                        continue
+
+                    if feature == "exang" and int(numeric) not in {0, 1}:
+                        continue
+
+                    if feature == "slope" and int(numeric) not in {0, 1, 2}:
+                        continue
+
+                    if feature == "ca" and int(numeric) not in {0, 1, 2, 3}:
+                        continue
+
+                    if feature == "thal" and int(numeric) not in {0, 1, 2, 3}:
                         continue
 
                 elif disease == "diabetes":
@@ -2633,23 +2709,14 @@ def candidate_values_for_feature(
                         continue
 
                 elif disease == "ckd":
-                    if feature in {
-                        "rbc",
-                        "pc",
-                        "pcc",
-                        "ba",
-                        "htn",
-                        "dm",
-                        "cad",
-                        "appet",
-                        "pe",
-                        "ane"
-                    } and int(numeric) not in {0, 1}:
+                    if int(numeric) not in {0, 1}:
                         continue
 
                 elif disease == "stroke":
+
                     if feature == "gender" and int(numeric) not in {0, 1, 2}:
                         continue
+
                     if feature in {
                         "hypertension",
                         "heart_disease",
@@ -2657,8 +2724,10 @@ def candidate_values_for_feature(
                         "Residence_type"
                     } and int(numeric) not in {0, 1}:
                         continue
+
                     if feature == "work_type" and int(numeric) not in {0, 1, 2, 3, 4}:
                         continue
+
                     if feature == "smoking_status" and int(numeric) not in {0, 1, 2, 3}:
                         continue
 
@@ -2666,39 +2735,153 @@ def candidate_values_for_feature(
             value
         )
 
-    # Remove duplicates and current value.
     filtered = _dedupe_numeric_values(
         filtered,
         original
     )
 
-    # Order candidates by closeness to the current state.
-    def closeness(value):
-
+    # Categorical variables: all valid alternative states are useful.
+    if feature in CATEGORICAL_FEATURES.get(
+        disease,
+        set()
+    ):
         try:
-            return abs(
-                float(value)
-                -
-                float(original)
+            filtered = sorted(
+                filtered,
+                key=lambda value: abs(
+                    float(value) - float(original)
+                )
             )
+        except (TypeError, ValueError):
+            filtered = list(filtered)
 
-        except (
-            TypeError,
-            ValueError
-        ):
+        return filtered[:MAX_VALUES_PER_FEATURE]
 
-            return 0.0
+    # Numerical variables: deliberately keep a mixture of nearby,
+    # reference-distribution, and distant values. The previous logic
+    # retained only the nearest values, which could prevent the search
+    # from ever reaching the trained model's decision boundary.
+    current = safe_numeric(original)
 
-    filtered = sorted(
-        filtered,
-        key=closeness
+    candidate_pool = list(filtered)
+    stats = _reference_numeric_stats(
+        disease,
+        feature
     )
 
-    # Preserve more distant values too when a one-step flip needs
-    # them, but cap the search.
-    return filtered[
-        :MAX_VALUES_PER_FEATURE
-    ]
+    if stats is not None:
+        for key in (
+            "q01",
+            "q10",
+            "median",
+            "q90",
+            "q99"
+        ):
+            value = stats.get(key)
+            if value is not None:
+                candidate_pool.append(float(value))
+
+    bounds = DOMAIN_BOUNDS.get(feature)
+    if bounds is not None:
+        candidate_pool.extend([
+            float(bounds[0]),
+            float(bounds[1])
+        ])
+
+    candidate_pool.extend(
+        FALLBACK_VALUES.get(feature, [])
+    )
+
+    if current is not None and np.isfinite(current):
+        candidate_pool.extend([
+            current * 0.75,
+            current * 0.50,
+            current * 1.25,
+            current * 1.50
+        ])
+
+    cleaned = []
+
+    for value in candidate_pool:
+
+        numeric = safe_numeric(value)
+        if not np.isfinite(numeric):
+            continue
+
+        numeric = clean_value(numeric)
+
+        if not within_domain(
+            feature,
+            numeric
+        ):
+            continue
+
+        if current is not None and np.isfinite(current):
+            if abs(float(numeric) - current) < 1e-12:
+                continue
+
+        if numeric not in cleaned:
+            cleaned.append(numeric)
+
+    if not cleaned:
+        return []
+
+    if current is None or not np.isfinite(current):
+        return sorted(cleaned)[:MAX_VALUES_PER_FEATURE]
+
+    by_distance = sorted(
+        cleaned,
+        key=lambda value: abs(float(value) - current)
+    )
+
+    by_far = sorted(
+        cleaned,
+        key=lambda value: abs(float(value) - current),
+        reverse=True
+    )
+
+    lower_side = sorted(
+        [value for value in cleaned if float(value) < current],
+        key=lambda value: abs(float(value) - current)
+    )
+
+    upper_side = sorted(
+        [value for value in cleaned if float(value) > current],
+        key=lambda value: abs(float(value) - current)
+    )
+
+    selected = []
+
+    def add_value(value):
+        if value is None:
+            return
+        if not any(
+            values_equal(existing, value)
+            for existing in selected
+        ):
+            selected.append(value)
+
+    # Near values.
+    for value in by_distance[:2]:
+        add_value(value)
+
+    # Both directions.
+    for value in lower_side[:2]:
+        add_value(value)
+
+    for value in upper_side[:2]:
+        add_value(value)
+
+    # At least one distant reference/domain anchor.
+    for value in by_far[:2]:
+        add_value(value)
+
+    selected = sorted(
+        selected,
+        key=lambda value: abs(float(value) - current)
+    )
+
+    return selected[:MAX_VALUES_PER_FEATURE]
 
 
 # ============================================================
@@ -3523,7 +3706,7 @@ def find_counterfactuals(
     patient,
     disease="heart",
     max_results=5,
-    max_features_changed=3
+    max_features_changed=2
 ):
 
     disease = normalize_disease(
