@@ -33,11 +33,18 @@ import itertools
 # =========================================================
 # FLASK APPLICATION
 # =========================================================
-
 app = Flask(__name__)
 CORS(
     app,
-    resources={r"/*": {"origins": "https://clinical-cdss-frontend.onrender.com"}},
+    resources={
+        r"/*": {
+            "origins": [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://clinical-cdss-frontend.onrender.com"
+            ]
+        }
+    },
     supports_credentials=True
 )
 

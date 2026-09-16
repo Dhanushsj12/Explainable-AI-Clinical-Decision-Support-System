@@ -36,6 +36,174 @@ MAX_VALUES_PER_FEATURE = 8
 
 
 # ============================================================
+# IMMUTABLE FEATURES
+# ============================================================
+# Features that should not be altered when generating a
+# counterfactual for a patient.  These are treated as fixed
+# patient attributes during the search.
+IMMUTABLE_FEATURES = {
+    "heart": {"age", "sex"},
+    "diabetes": {"age", "gender"},
+    "ckd": {"age"},
+    "stroke": {"age", "gender"},
+}
+# ============================================================
+# PREFERRED COUNTERFACTUAL FEATURES
+# ============================================================
+
+PREFERRED_FEATURES = {
+    "heart": [
+        "trestbps",
+        "chol",
+        "fbs",
+        "thalach",
+        "exang",
+        "oldpeak",
+        "cp",
+        "restecg",
+        "slope",
+        "ca",
+        "thal",
+    ],
+
+    "diabetes": [
+        "polyuria",
+        "polydipsia",
+        "sudden_weight_loss",
+        "weakness",
+        "polyphagia",
+        "genital_thrush",
+        "visual_blurring",
+        "itching",
+        "irritability",
+        "delayed_healing",
+        "partial_paresis",
+        "muscle_stiffness",
+        "alopecia",
+        "obesity",
+    ],
+
+    "ckd": [
+        "al",
+        "su",
+        "sg",
+        "bgr",
+        "bu",
+        "sc",
+        "sod",
+        "pot",
+        "hemo",
+        "pcv",
+        "wbcc",
+        "rbcc",
+        "rbc",
+        "pc",
+        "pcc",
+        "ba",
+        "appet",
+        "pe",
+        "ane",
+        "bp",
+    ],
+
+    "stroke": [
+        "smoking_status",
+        "hypertension",
+        "avg_glucose_level",
+        "bmi",
+    ],
+}
+# ============================================================
+# DOMAIN BOUNDS
+# ============================================================
+# Protect counterfactual search from numerical values outside
+# the ordinary ranges represented by the project datasets.
+
+DOMAIN_BOUNDS = {
+    "age": (18.0, 100.0),
+
+    # Heart
+    "trestbps": (80.0, 220.0),
+    "chol": (80.0, 650.0),
+    "thalach": (40.0, 220.0),
+    "oldpeak": (-2.0, 8.0),
+
+    # CKD
+    "bp": (40.0, 240.0),
+    "sg": (1.0, 1.1),
+    "bgr": (40.0, 500.0),
+    "bu": (1.0, 200.0),
+    "sc": (0.1, 20.0),
+    "sod": (100.0, 180.0),
+    "pot": (1.5, 10.0),
+    "hemo": (3.0, 20.0),
+    "pcv": (10.0, 70.0),
+    "wbcc": (1000.0, 30000.0),
+    "rbcc": (1.0, 10.0),
+
+    # Stroke
+    "avg_glucose_level": (40.0, 500.0),
+    "bmi": (10.0, 70.0),
+}
+# ============================================================
+# CATEGORICAL / BINARY FEATURES
+# ============================================================
+
+CATEGORICAL_FEATURES = {
+
+    "heart": {
+        "sex",
+        "cp",
+        "fbs",
+        "restecg",
+        "exang",
+        "slope",
+        "ca",
+        "thal",
+    },
+
+    "diabetes": {
+        "gender",
+        "polyuria",
+        "polydipsia",
+        "sudden_weight_loss",
+        "weakness",
+        "polyphagia",
+        "genital_thrush",
+        "visual_blurring",
+        "itching",
+        "irritability",
+        "delayed_healing",
+        "partial_paresis",
+        "muscle_stiffness",
+        "alopecia",
+        "obesity",
+    },
+
+    "ckd": {
+        "rbc",
+        "pc",
+        "pcc",
+        "ba",
+        "htn",
+        "dm",
+        "cad",
+        "appet",
+        "pe",
+        "ane",
+    },
+
+    "stroke": {
+        "gender",
+        "hypertension",
+        "heart_disease",
+        "ever_married",
+        "work_type",
+        "Residence_type",
+        "smoking_status",
+    },
+}
+# ============================================================
 # BASE DIRECTORY
 # ============================================================
 
@@ -1132,14 +1300,17 @@ def build_model_frame(
         disease
     )
 
-    feature_names = MODEL_CONFIG[
+    config = MODEL_CONFIG[
         disease
-    ][
+    ]
+
+    feature_names = config[
         "features"
     ]
 
     row = {}
 
+    # Build the canonical raw feature dictionary first.
     for feature in feature_names:
 
         value = patient.get(
@@ -1151,19 +1322,74 @@ def build_model_frame(
             and
             feature == "Residence_type"
         ):
-
             value = patient.get(
                 "residence_type"
             )
 
-        row[
-            feature
-        ] = value
+        row[feature] = value
 
-    return pd.DataFrame(
+    df = pd.DataFrame(
         [row],
         columns=feature_names
     )
+
+    # --------------------------------------------------------
+    # Some of the stored Diabetes preprocessing objects were
+    # fitted with human-readable column names (for example
+    # ``Age`` and ``Alopecia``), while the XAI/CF layer uses
+    # canonical snake_case names.  Align to the scaler's exact
+    # training names before calling transform().
+    # --------------------------------------------------------
+    scaler = config.get(
+        "scaler"
+    )
+
+    fitted_names = getattr(
+        scaler,
+        "feature_names_in_",
+        None
+    )
+
+    if fitted_names is not None:
+
+        alias_map = {
+            "age": "Age",
+            "gender": "Gender",
+            "polyuria": "Polyuria",
+            "polydipsia": "Polydipsia",
+            "sudden_weight_loss": "Sudden weight loss",
+            "weakness": "Weakness",
+            "polyphagia": "Polyphagia",
+            "genital_thrush": "Genital thrush",
+            "visual_blurring": "Visual blurring",
+            "itching": "Itching",
+            "irritability": "Irritability",
+            "delayed_healing": "Delayed healing",
+            "partial_paresis": "Partial paresis",
+            "muscle_stiffness": "Muscle stiffness",
+            "alopecia": "Alopecia",
+            "obesity": "Obesity",
+        }
+
+        # Prefer the exact fitted name where a canonical alias
+        # exists; otherwise keep the original canonical column.
+        rename = {}
+        for canonical, human in alias_map.items():
+            if canonical in df.columns and human in fitted_names:
+                rename[canonical] = human
+
+        if rename:
+            df = df.rename(
+                columns=rename
+            )
+
+        # Reindex to the exact feature order used during fit.
+        df = df.reindex(
+            columns=list(fitted_names),
+            fill_value=np.nan
+        )
+
+    return df
 
 
 # ============================================================
