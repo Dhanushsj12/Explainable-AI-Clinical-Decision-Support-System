@@ -2378,7 +2378,8 @@ function FeatureImportance({
      */
 
     const showCounterfactual =
-        false;
+    Array.isArray(counterfactuals) &&
+    counterfactuals.length > 0;
 
 
     if (
