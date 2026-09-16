@@ -2866,7 +2866,6 @@ def generate_multi_feature_candidates(
     max_features_changed=2,
     max_candidates=MAX_TOTAL_CANDIDATES
 ):
-
     disease = normalize_disease(
         disease
     )
@@ -2925,7 +2924,12 @@ def generate_multi_feature_candidates(
             :MAX_VALUES_PER_FEATURE
         ]
 
-    candidates = []
+    # --------------------------------------------------------
+    # Build candidates separately for each feature combination.
+    # This prevents the first feature pair from consuming the
+    # entire candidate budget.
+    # --------------------------------------------------------
+    candidate_buckets = []
 
     for number_of_changes in range(
         2,
@@ -2950,6 +2954,8 @@ def generate_multi_feature_candidates(
                 for values in value_lists
             ):
                 continue
+
+            bucket = []
 
             for candidate_values in itertools.product(
                 *value_lists
@@ -2994,20 +3000,52 @@ def generate_multi_feature_candidates(
                 if not valid:
                     continue
 
-                # Exactly N genuinely changed features.
                 if len(changes) != number_of_changes:
                     continue
 
-                candidates.append(
+                bucket.append(
                     changes
                 )
 
+            if bucket:
+                candidate_buckets.append(
+                    bucket
+                )
+
+    # --------------------------------------------------------
+    # Round-robin selection across feature combinations.
+    # This gives later feature pairs a chance to be evaluated
+    # before MAX_TOTAL_CANDIDATES is reached.
+    # --------------------------------------------------------
+    candidates = []
+
+    bucket_index = 0
+
+    while (
+        len(candidates) < max_candidates
+        and candidate_buckets
+    ):
+
+        active_buckets = 0
+
+        for bucket in candidate_buckets:
+
+            if bucket_index < len(bucket):
+                candidates.append(
+                    bucket[bucket_index]
+                )
+
+                active_buckets += 1
+
                 if len(candidates) >= max_candidates:
-                    return candidates
+                    break
+
+        if active_buckets == 0:
+            break
+
+        bucket_index += 1
 
     return candidates
-
-
 def candidate_distance(
     changes
 ):
