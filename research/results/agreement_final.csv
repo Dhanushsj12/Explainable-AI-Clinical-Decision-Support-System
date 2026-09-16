@@ -1,0 +1,5 @@
+disease,patients_evaluated,agreement_valid_cases,mean_feature_agreement_pct,mean_direction_agreement_pct,mean_ranking_agreement_pct,mean_overall_consistency_pct
+heart,25,25,59.2,100.0,63.5828,72.7552
+diabetes,25,25,20.0,100.0,100.0,68.0
+ckd,25,25,60.8,100.0,74.084,76.5448
+stroke,25,25,46.4,100.0,82.50040000000001,73.31

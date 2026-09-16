@@ -1,0 +1,5 @@
+disease,patients_evaluated,agreement_valid_cases,mean_feature_agreement_pct,mean_direction_agreement_pct,mean_ranking_agreement_pct,mean_overall_consistency_pct,counterfactual_valid_cases,counterfactual_success_cases,counterfactual_success_rate_pct,mean_cf_count,mean_cf_feature_count,mean_shap_cf_alignment_pct,mean_lime_cf_alignment_pct,mean_common_cf_alignment_pct
+heart,25,25,59.2,100.0,63.5828,72.7552,25,22,88.0,4.12,3.68,0.0,0.0,0.0
+diabetes,25,25,20.0,100.0,100.0,68.0,25,25,100.0,5.0,4.0,0.0,0.0,0.0
+ckd,25,25,60.8,100.0,74.084,76.5448,25,0,0.0,0.0,0.0,,,
+stroke,25,25,46.4,100.0,82.50040000000001,73.31,25,0,0.0,0.0,0.0,,,

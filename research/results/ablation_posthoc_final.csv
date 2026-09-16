@@ -1,0 +1,21 @@
+disease,accuracy,precision,recall,f1,roc_auc,configuration,explanation_coverage_pct,feature_agreement_pct,overall_consistency_pct,counterfactual_success_rate_pct,note
+heart,0.8852459016393442,0.8181818181818182,0.9642857142857144,0.8852459016393442,0.9512987012987012,Prediction only,,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+heart,0.8852459016393442,0.8181818181818182,0.9642857142857144,0.8852459016393442,0.9512987012987012,Prediction + SHAP,100.0,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+heart,0.8852459016393442,0.8181818181818182,0.9642857142857144,0.8852459016393442,0.9512987012987012,Prediction + LIME,100.0,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+heart,0.8852459016393442,0.8181818181818182,0.9642857142857144,0.8852459016393442,0.9512987012987012,Prediction + SHAP + LIME,,59.2,72.7552,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+heart,0.8852459016393442,0.8181818181818182,0.9642857142857144,0.8852459016393442,0.9512987012987012,Full XAI-CDSS,,59.2,72.7552,88.0,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+diabetes,0.8846153846153846,0.8611111111111112,0.96875,0.9117647058823528,0.859375,Prediction only,,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+diabetes,0.8846153846153846,0.8611111111111112,0.96875,0.9117647058823528,0.859375,Prediction + SHAP,100.0,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+diabetes,0.8846153846153846,0.8611111111111112,0.96875,0.9117647058823528,0.859375,Prediction + LIME,100.0,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+diabetes,0.8846153846153846,0.8611111111111112,0.96875,0.9117647058823528,0.859375,Prediction + SHAP + LIME,,20.0,68.0,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+diabetes,0.8846153846153846,0.8611111111111112,0.96875,0.9117647058823528,0.859375,Full XAI-CDSS,,20.0,68.0,100.0,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+ckd,0.625,0.625,1.0,0.7692307692307693,0.9766666666666666,Prediction only,,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+ckd,0.625,0.625,1.0,0.7692307692307693,0.9766666666666666,Prediction + SHAP,100.0,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+ckd,0.625,0.625,1.0,0.7692307692307693,0.9766666666666666,Prediction + LIME,100.0,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+ckd,0.625,0.625,1.0,0.7692307692307693,0.9766666666666666,Prediction + SHAP + LIME,,60.8,76.5448,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+ckd,0.625,0.625,1.0,0.7692307692307693,0.9766666666666666,Full XAI-CDSS,,60.8,76.5448,0.0,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+stroke,0.9275929549902152,0.3064516129032258,0.38,0.3392857142857143,0.8438271604938272,Prediction only,,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+stroke,0.9275929549902152,0.3064516129032258,0.38,0.3392857142857143,0.8438271604938272,Prediction + SHAP,100.0,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+stroke,0.9275929549902152,0.3064516129032258,0.38,0.3392857142857143,0.8438271604938272,Prediction + LIME,100.0,,,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+stroke,0.9275929549902152,0.3064516129032258,0.38,0.3392857142857143,0.8438271604938272,Prediction + SHAP + LIME,,46.4,73.31,,Post-hoc component analysis. Classification metrics are from the same held-out production model.
+stroke,0.9275929549902152,0.3064516129032258,0.38,0.3392857142857143,0.8438271604938272,Full XAI-CDSS,,46.4,73.31,0.0,Post-hoc component analysis. Classification metrics are from the same held-out production model.

@@ -1,0 +1,7 @@
+component,classification_metric_source,metric_value,note
+Prediction-only,Production model test evaluation,,Classification performance is unchanged by post-hoc explanation layers; populate model metrics from held-out test evaluation files.
+Prediction + SHAP,Same production model; explanation added,,Classification performance is unchanged by post-hoc explanation layers; populate model metrics from held-out test evaluation files.
+Prediction + LIME,Same production model; explanation added,,Classification performance is unchanged by post-hoc explanation layers; populate model metrics from held-out test evaluation files.
+Prediction + SHAP + LIME,Same production model; dual explanations,,Classification performance is unchanged by post-hoc explanation layers; populate model metrics from held-out test evaluation files.
+Prediction + SHAP + LIME + Agreement,Same production model; agreement metrics,,Classification performance is unchanged by post-hoc explanation layers; populate model metrics from held-out test evaluation files.
+Full framework + Counterfactual Alignment,Same production model; CF alignment,,Classification performance is unchanged by post-hoc explanation layers; populate model metrics from held-out test evaluation files.

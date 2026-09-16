@@ -1,0 +1,6 @@
+configuration,feature_agreement_pct,overall_consistency_pct,cf_success_rate_pct,alignment_pct,interpretation
+Prediction only,,,,,No explanation layer
+Prediction + SHAP,,,,,Single global/local attribution path
+Prediction + LIME,,,,,Single local surrogate path
+Prediction + SHAP + LIME,,,,,Dual-explainer configuration
+Full XAI-CDSS,,,,,Dual explainers + agreement + counterfactual validation
