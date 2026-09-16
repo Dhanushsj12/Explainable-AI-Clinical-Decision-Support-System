@@ -924,78 +924,44 @@ function CounterfactualSection({
 
 
                     {
-                        items.length > 0
-                            ? (
-
-                                <div
-                                    style={{
-                                        display:
-                                            "grid",
-                                        gap:
-                                            "18px",
-                                        marginTop:
-                                            "20px"
-                                    }}
-                                >
-
-                                    {
-                                        items.map(
-                                            (
-                                                counterfactual,
-                                                index
-                                            ) => (
-
-                                                <CounterfactualCard
-                                                    key={
-                                                        index
-                                                    }
-                                                    counterfactual={
-                                                        counterfactual
-                                                    }
-                                                    index={
-                                                        index
-                                                    }
-                                                />
-
-                                            )
+                        items.length > 0 ? (
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gap: "18px",
+                                    marginTop: "20px"
+                                }}
+                            >
+                                {
+                                    items.map(
+                                        (counterfactual, index) => (
+                                            <CounterfactualCard
+                                                key={index}
+                                                counterfactual={counterfactual}
+                                                index={index}
+                                            />
                                         )
-                                    }
-
-                                </div>
-
-                            )
-                            : (
-
-                                <div
-                                    className="clinical-note"
-                                    style={{
-                                        marginTop:
-                                            "18px"
-                                    }}
-                                >
-
-                                    <strong>
-                                        No counterfactual profile
-                                        was returned.
-                                    </strong>
-
-                                    <br />
-
-                                    The model did not return a
-                                    valid alternative profile for
-                                    this{" "}
-                                    {
-                                        diseaseName(
-                                            disease
-                                        ).toLowerCase()
-                                    }{" "}
-                                    assessment within the configured
-                                    search space.
-
-                                </div>
-
-                            )
+                                    )
+                                }
+                            </div>
+                        ) : (
+                            <div
+                                className="clinical-note"
+                                style={{ marginTop: "18px" }}
+                            >
+                                <strong>
+                                    No counterfactual profile was returned.
+                                </strong>
+                                <br />
+                                The model did not return a valid alternative profile for this{" "}
+                                {
+                                    diseaseName(disease).toLowerCase()
+                                }{" "}
+                                assessment within the configured search space.
+                            </div>
+                        )
                     }
+
 
 
                     {/* =================================================
@@ -1786,20 +1752,6 @@ function PatientSummary({
 
             </div>
 
-
-            {/* =================================================
-                COUNTERFACTUAL
-                HEART / DIABETES / CKD / STROKE
-            ================================================= */}
-
-            <CounterfactualSection
-                counterfactuals={
-                    counterfactuals
-                }
-                disease={
-                    disease
-                }
-            />
 
         </>
 
