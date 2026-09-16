@@ -2863,7 +2863,7 @@ def generate_single_feature_candidates(
 def generate_multi_feature_candidates(
     patient,
     disease,
-    max_features_changed=3,
+    max_features_changed=2,
     max_candidates=MAX_TOTAL_CANDIDATES
 ):
 
