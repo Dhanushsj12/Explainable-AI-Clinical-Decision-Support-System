@@ -43,7 +43,7 @@ MAX_VALUES_PER_FEATURE = 8
 # patient attributes during the search.
 IMMUTABLE_FEATURES = {
     "heart": {"age", "sex"},
-    "diabetes": {"age", "gender"},
+    "diabetes": {"age",},
     "ckd": {"age"},
     "stroke": {"age", "gender"},
 }
