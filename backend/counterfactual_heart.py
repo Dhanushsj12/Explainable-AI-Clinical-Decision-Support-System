@@ -3470,12 +3470,10 @@ def sort_counterfactuals(
         key=_candidate_quality_key
     )
 
-
 def select_diverse_counterfactuals(
     counterfactuals,
     max_results
 ):
-
     if not counterfactuals:
         return []
 
@@ -3485,49 +3483,103 @@ def select_diverse_counterfactuals(
 
     selected = []
 
+    used_feature_sets = set()
     used_features = set()
 
     # --------------------------------------------------------
-    # First pass:
-    # Prefer sparse candidates with different changed features.
-    # This prevents the UI from showing five near-identical
-    # counterfactuals.
+    # PASS 1
+    # Prefer unique combinations of changed features.
+    # Example:
+    #   {ca, oldpeak}
+    #   {ca, restecg}
+    #   {trestbps, thalach}
+    # are treated as different explanation patterns.
     # --------------------------------------------------------
-
     for item in ranked:
 
         if len(selected) >= max_results:
             break
 
-        changed_features = set(
-            item.get(
-                "changes",
-                {}
-            ).keys()
+        changes = item.get(
+            "changes",
+            {}
         )
 
-        if not changed_features:
+        if not changes:
             continue
 
-        if changed_features.isdisjoint(
-            used_features
-        ):
+        feature_set = frozenset(
+            changes.keys()
+        )
+
+        if feature_set in used_feature_sets:
+            continue
+
+        selected.append(
+            item
+        )
+
+        used_feature_sets.add(
+            feature_set
+        )
+
+        used_features.update(
+            feature_set
+        )
+
+    # --------------------------------------------------------
+    # PASS 2
+    # Prefer a new individual feature when possible.
+    # This prevents five results from revolving around the
+    # exact same dominant feature.
+    # --------------------------------------------------------
+    if len(selected) < max_results:
+
+        for item in ranked:
+
+            if len(selected) >= max_results:
+                break
+
+            if item in selected:
+                continue
+
+            changes = item.get(
+                "changes",
+                {}
+            )
+
+            feature_set = frozenset(
+                changes.keys()
+            )
+
+            # Unique combination still preferred.
+            if feature_set in used_feature_sets:
+                continue
+
+            # Prefer at least one new feature.
+            if not feature_set.isdisjoint(
+                used_features
+            ):
+                continue
 
             selected.append(
                 item
             )
 
+            used_feature_sets.add(
+                feature_set
+            )
+
             used_features.update(
-                changed_features
+                feature_set
             )
 
     # --------------------------------------------------------
-    # Second pass:
-    # If there were not enough one-feature-diverse results,
-    # fill the remaining slots with the next best valid
-    # counterfactuals.
+    # PASS 3
+    # Fill remaining slots with the best valid candidates.
+    # At this point all remaining items are already genuine
+    # model-validated counterfactuals.
     # --------------------------------------------------------
-
     if len(selected) < max_results:
 
         for item in ranked:
@@ -3545,7 +3597,6 @@ def select_diverse_counterfactuals(
     return selected[
         :max_results
     ]
-
 
 # ============================================================
 # FIND COUNTERFACTUALS
