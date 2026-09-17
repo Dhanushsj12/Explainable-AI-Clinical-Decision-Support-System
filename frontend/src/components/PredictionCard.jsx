@@ -1823,29 +1823,7 @@ function PredictionCard({
             </div>
 
 
-            {/* =================================================
-                COUNTERFACTUAL
-            ================================================= */}
 
-            <CounterfactualExplanation
-
-                counterfactuals={
-                    finalCounterfactuals
-                }
-
-                originalProbability={
-                    probability
-                }
-
-                originalPrediction={
-                    message
-                }
-
-                disease={
-                    disease
-                }
-
-            />
 
         </>
 
