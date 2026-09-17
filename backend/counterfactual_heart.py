@@ -2544,19 +2544,10 @@ def candidate_values_for_feature(
     feature
 ):
 
-    disease = normalize_disease(
-        disease
-    )
+    disease = normalize_disease(disease)
+    original = patient.get(feature)
 
-    original = patient.get(
-        feature
-    )
-
-    # Immutable features must never be changed.
-    if feature_is_immutable(
-        disease,
-        feature
-    ):
+    if feature_is_immutable(disease, feature):
         return []
 
     values = get_reference_values(
@@ -2565,323 +2556,187 @@ def candidate_values_for_feature(
         original
     )
 
-    # Explicit categorical domains.
-    if disease == "heart":
+    # --------------------------------------------------------
+    # Explicit legal state spaces for categorical features.
+    # --------------------------------------------------------
+    categorical_spaces = {
+        "heart": {
+            "sex": [0, 1],
+            "cp": [0, 1, 2, 3],
+            "fbs": [0, 1],
+            "restecg": [0, 1, 2],
+            "exang": [0, 1],
+            "slope": [0, 1, 2],
+            "ca": [0, 1, 2, 3],
+            "thal": [0, 1, 2]
+        },
+        "diabetes": {
+            "gender": [0, 1],
+            "polyuria": [0, 1],
+            "polydipsia": [0, 1],
+            "sudden_weight_loss": [0, 1],
+            "weakness": [0, 1],
+            "polyphagia": [0, 1],
+            "genital_thrush": [0, 1],
+            "visual_blurring": [0, 1],
+            "itching": [0, 1],
+            "irritability": [0, 1],
+            "delayed_healing": [0, 1],
+            "partial_paresis": [0, 1],
+            "muscle_stiffness": [0, 1],
+            "alopecia": [0, 1],
+            "obesity": [0, 1]
+        },
+        "ckd": {
+            "rbc": [0, 1],
+            "pc": [0, 1],
+            "pcc": [0, 1],
+            "ba": [0, 1],
+            "htn": [0, 1],
+            "dm": [0, 1],
+            "cad": [0, 1],
+            "appet": [0, 1],
+            "pe": [0, 1],
+            "ane": [0, 1]
+        },
+        "stroke": {
+            "gender": [0, 1, 2],
+            "hypertension": [0, 1],
+            "heart_disease": [0, 1],
+            "ever_married": [0, 1],
+            "work_type": [0, 1, 2, 3, 4],
+            "Residence_type": [0, 1],
+            "smoking_status": [0, 1, 2, 3]
+        }
+    }
 
-        if feature == "sex":
-            values = [0, 1]
+    if feature in categorical_spaces.get(disease, {}):
+        values = categorical_spaces[disease][feature]
 
-        elif feature == "cp":
-            values = [0, 1, 2, 3]
-
-        elif feature == "fbs":
-            values = [0, 1]
-
-        elif feature == "restecg":
-            values = [0, 1, 2]
-
-        elif feature == "exang":
-            values = [0, 1]
-
-        elif feature == "slope":
-            values = [0, 1, 2]
-
-        elif feature == "ca":
-            values = [0, 1, 2, 3]
-
-        elif feature == "thal":
-            values = [0, 1, 2, 3]
-
-    elif disease == "diabetes":
-
-        if feature == "gender":
-            values = [0, 1]
-
-        elif feature in {
-            "polyuria",
-            "polydipsia",
-            "sudden_weight_loss",
-            "weakness",
-            "polyphagia",
-            "genital_thrush",
-            "visual_blurring",
-            "itching",
-            "irritability",
-            "delayed_healing",
-            "partial_paresis",
-            "muscle_stiffness",
-            "alopecia",
-            "obesity"
-        }:
-            values = [0, 1]
-
-    elif disease == "ckd":
-
-        if feature in {
-            "rbc",
-            "pc",
-            "pcc",
-            "ba",
-            "htn",
-            "dm",
-            "cad",
-            "appet",
-            "pe",
-            "ane"
-        }:
-            values = [0, 1]
-
-    elif disease == "stroke":
-
-        if feature == "gender":
-            values = [0, 1, 2]
-
-        elif feature == "ever_married":
-            values = [0, 1]
-
-        elif feature == "work_type":
-            values = [0, 1, 2, 3, 4]
-
-        elif feature == "Residence_type":
-            values = [0, 1]
-
-        elif feature == "smoking_status":
-            values = [0, 1, 2, 3]
-
-        elif feature in {
-            "hypertension",
-            "heart_disease"
-        }:
-            values = [0, 1]
-
-    # Keep only valid domain values.
     filtered = []
-
     for value in values:
-
-        if not within_domain(
-            feature,
-            value
-        ):
+        if not within_domain(feature, value):
             continue
 
-        if (
-            feature in CATEGORICAL_FEATURES.get(
-                disease,
-                set()
-            )
-        ):
-
-            numeric = safe_numeric(
-                value
-            )
-
-            if np.isfinite(numeric):
-
-                if disease == "heart":
-
-                    if feature == "sex" and int(numeric) not in {0, 1}:
-                        continue
-
-                    if feature == "cp" and int(numeric) not in {0, 1, 2, 3}:
-                        continue
-
-                    if feature == "fbs" and int(numeric) not in {0, 1}:
-                        continue
-
-                    if feature == "restecg" and int(numeric) not in {0, 1, 2}:
-                        continue
-
-                    if feature == "exang" and int(numeric) not in {0, 1}:
-                        continue
-
-                    if feature == "slope" and int(numeric) not in {0, 1, 2}:
-                        continue
-
-                    if feature == "ca" and int(numeric) not in {0, 1, 2, 3}:
-                        continue
-
-                    if feature == "thal" and int(numeric) not in {0, 1, 2, 3}:
-                        continue
-
-                elif disease == "diabetes":
-                    if int(numeric) not in {0, 1}:
-                        continue
-
-                elif disease == "ckd":
-                    if int(numeric) not in {0, 1}:
-                        continue
-
-                elif disease == "stroke":
-
-                    if feature == "gender" and int(numeric) not in {0, 1, 2}:
-                        continue
-
-                    if feature in {
-                        "hypertension",
-                        "heart_disease",
-                        "ever_married",
-                        "Residence_type"
-                    } and int(numeric) not in {0, 1}:
-                        continue
-
-                    if feature == "work_type" and int(numeric) not in {0, 1, 2, 3, 4}:
-                        continue
-
-                    if feature == "smoking_status" and int(numeric) not in {0, 1, 2, 3}:
-                        continue
-
-        filtered.append(
-            value
-        )
-
-    filtered = _dedupe_numeric_values(
-        filtered,
-        original
-    )
-
-    # Categorical variables: all valid alternative states are useful.
-    if feature in CATEGORICAL_FEATURES.get(
-        disease,
-        set()
-    ):
-        try:
-            filtered = sorted(
-                filtered,
-                key=lambda value: abs(
-                    float(value) - float(original)
-                )
-            )
-        except (TypeError, ValueError):
-            filtered = list(filtered)
-
-        return filtered[:MAX_VALUES_PER_FEATURE]
-
-    # Numerical variables: deliberately keep a mixture of nearby,
-    # reference-distribution, and distant values. The previous logic
-    # retained only the nearest values, which could prevent the search
-    # from ever reaching the trained model's decision boundary.
-    current = safe_numeric(original)
-
-    candidate_pool = list(filtered)
-    stats = _reference_numeric_stats(
-        disease,
-        feature
-    )
-
-    if stats is not None:
-        for key in (
-            "q01",
-            "q10",
-            "median",
-            "q90",
-            "q99"
-        ):
-            value = stats.get(key)
-            if value is not None:
-                candidate_pool.append(float(value))
-
-    bounds = DOMAIN_BOUNDS.get(feature)
-    if bounds is not None:
-        candidate_pool.extend([
-            float(bounds[0]),
-            float(bounds[1])
-        ])
-
-    candidate_pool.extend(
-        FALLBACK_VALUES.get(feature, [])
-    )
-
-    if current is not None and np.isfinite(current):
-        candidate_pool.extend([
-            current * 0.75,
-            current * 0.50,
-            current * 1.25,
-            current * 1.50
-        ])
-
-    cleaned = []
-
-    for value in candidate_pool:
-
-        numeric = safe_numeric(value)
-        if not np.isfinite(numeric):
-            continue
-
-        numeric = clean_value(numeric)
-
-        if not within_domain(
-            feature,
-            numeric
-        ):
-            continue
-
-        if current is not None and np.isfinite(current):
-            if abs(float(numeric) - current) < 1e-12:
+        if feature in CATEGORICAL_FEATURES.get(disease, set()):
+            numeric = safe_numeric(value)
+            if not np.isfinite(numeric):
                 continue
 
-        if numeric not in cleaned:
-            cleaned.append(numeric)
+            allowed = categorical_spaces.get(disease, {}).get(feature)
+            if allowed is not None and int(numeric) not in set(allowed):
+                continue
 
-    if not cleaned:
-        return []
+        filtered.append(value)
 
-    if current is None or not np.isfinite(current):
-        return sorted(cleaned)[:MAX_VALUES_PER_FEATURE]
+    filtered = _dedupe_numeric_values(filtered, original)
 
-    by_distance = sorted(
-        cleaned,
-        key=lambda value: abs(float(value) - current)
-    )
+    # --------------------------------------------------------
+    # Numerical features: build a deliberately diverse search
+    # set instead of only the nearest values.
+    # --------------------------------------------------------
+    if feature not in CATEGORICAL_FEATURES.get(disease, set()):
+        current = safe_numeric(original)
+        pool = list(filtered)
+        stats = _reference_numeric_stats(disease, feature)
 
-    by_far = sorted(
-        cleaned,
-        key=lambda value: abs(float(value) - current),
-        reverse=True
-    )
+        if stats is not None:
+            for key in ("q01", "q10", "median", "q90", "q99"):
+                value = stats.get(key)
+                if value is not None:
+                    pool.append(float(value))
 
-    lower_side = sorted(
-        [value for value in cleaned if float(value) < current],
-        key=lambda value: abs(float(value) - current)
-    )
+        bounds = DOMAIN_BOUNDS.get(feature)
+        if bounds is not None:
+            low, high = bounds
+            pool.extend([float(low), float(high)])
 
-    upper_side = sorted(
-        [value for value in cleaned if float(value) > current],
-        key=lambda value: abs(float(value) - current)
-    )
+        pool.extend(FALLBACK_VALUES.get(feature, []))
 
-    selected = []
+        if current is not None and np.isfinite(current):
+            if stats is not None:
+                if stats.get("q10") is not None:
+                    pool.append(float(stats["q10"]))
+                if stats.get("q90") is not None:
+                    pool.append(float(stats["q90"]))
 
-    def add_value(value):
-        if value is None:
-            return
-        if not any(
-            values_equal(existing, value)
-            for existing in selected
-        ):
+            # Moderate proportional anchors.
+            pool.extend([
+                current * 0.50,
+                current * 0.75,
+                current * 1.25,
+                current * 1.50
+            ])
+
+        cleaned = []
+        for value in pool:
+            numeric = safe_numeric(value)
+            if not np.isfinite(numeric):
+                continue
+            numeric = clean_value(numeric)
+            if not within_domain(feature, numeric):
+                continue
+            if current is not None and np.isfinite(current):
+                if abs(float(numeric) - current) < 1e-12:
+                    continue
+            if numeric not in cleaned:
+                cleaned.append(numeric)
+
+        if current is None or not np.isfinite(current):
+            return sorted(cleaned)[:MAX_VALUES_PER_FEATURE]
+
+        near = sorted(
+            cleaned,
+            key=lambda value: abs(float(value) - current)
+        )
+        far = sorted(
+            cleaned,
+            key=lambda value: abs(float(value) - current),
+            reverse=True
+        )
+        lower = sorted(
+            [value for value in cleaned if float(value) < current],
+            key=lambda value: abs(float(value) - current)
+        )
+        upper = sorted(
+            [value for value in cleaned if float(value) > current],
+            key=lambda value: abs(float(value) - current)
+        )
+
+        selected = []
+
+        def add(value):
+            if value is None:
+                return
+            if any(values_equal(existing, value) for existing in selected):
+                return
             selected.append(value)
 
-    # Near values.
-    for value in by_distance[:2]:
-        add_value(value)
+        for value in near[:2]:
+            add(value)
+        for value in lower[:2]:
+            add(value)
+        for value in upper[:2]:
+            add(value)
+        for value in far[:2]:
+            add(value)
 
-    # Both directions.
-    for value in lower_side[:2]:
-        add_value(value)
+        return sorted(
+            selected,
+            key=lambda value: abs(float(value) - current)
+        )[:MAX_VALUES_PER_FEATURE]
 
-    for value in upper_side[:2]:
-        add_value(value)
+    # Categorical: keep every alternate legal state, ordered by
+    # closeness so sparse changes are still evaluated early.
+    try:
+        filtered = sorted(
+            filtered,
+            key=lambda value: abs(float(value) - float(original))
+        )
+    except (TypeError, ValueError):
+        filtered = list(filtered)
 
-    # At least one distant reference/domain anchor.
-    for value in by_far[:2]:
-        add_value(value)
-
-    selected = sorted(
-        selected,
-        key=lambda value: abs(float(value) - current)
-    )
-
-    return selected[:MAX_VALUES_PER_FEATURE]
+    return filtered[:MAX_VALUES_PER_FEATURE]
 
 
 # ============================================================
@@ -3047,103 +2902,64 @@ def generate_multi_feature_candidates(
     patient,
     disease,
     max_features_changed=2,
-    max_candidates=MAX_TOTAL_CANDIDATES
+    max_candidates=MAX_TOTAL_CANDIDATES,
+    target_class=None
 ):
-    disease = normalize_disease(
-        disease
-    )
-
-    feature_names = MODEL_CONFIG[
-        disease
-    ][
-        "features"
-    ]
+    disease = normalize_disease(disease)
+    feature_names = MODEL_CONFIG[disease]["features"]
 
     max_features_changed = max(
         1,
-        min(
-            int(
-                max_features_changed
-            ),
-            MAX_FEATURES_CHANGED
-        )
+        min(int(max_features_changed), MAX_FEATURES_CHANGED)
     )
 
-    # Only mutable features participate.
+    if target_class is None:
+        original_prediction, _ = predict_patient(patient, disease)
+        target_class = 1 if int(original_prediction) == 0 else 0
+
     mutable_features = [
-        feature
-        for feature in feature_names
-        if not feature_is_immutable(
-            disease,
-            feature
-        )
+        feature for feature in feature_names
+        if not feature_is_immutable(disease, feature)
     ]
 
-    # Preferred clinical-state features are searched first.
     mutable_features = sorted(
         mutable_features,
         key=lambda feature: (
-            feature_priority(
-                disease,
-                feature
-            ),
+            feature_priority(disease, feature),
             feature
         )
     )
 
     feature_candidates = {}
-
     for feature in mutable_features:
-
-        values = candidate_values_for_feature(
+        feature_candidates[feature] = candidate_values_for_feature(
             patient,
             disease,
             feature
-        )
+        )[:MAX_VALUES_PER_FEATURE]
 
-        feature_candidates[
-            feature
-        ] = values[
-            :MAX_VALUES_PER_FEATURE
-        ]
-
-    # --------------------------------------------------------
-    # Build candidates separately for each feature combination.
-    # This prevents the first feature pair from consuming the
-    # entire candidate budget.
-    # --------------------------------------------------------
     candidate_buckets = []
 
-    for number_of_changes in range(
-        2,
-        max_features_changed + 1
-    ):
-
+    # --------------------------------------------------------
+    # Build every allowed 2-feature combination. Each bucket is
+    # scored before the global budget is applied so feature pairs
+    # with a plausible class-changing direction are searched first.
+    # --------------------------------------------------------
+    for number_of_changes in range(2, max_features_changed + 1):
         for selected_features in itertools.combinations(
             mutable_features,
             number_of_changes
         ):
-
             value_lists = [
-                feature_candidates.get(
-                    feature,
-                    []
-                )
+                feature_candidates.get(feature, [])
                 for feature in selected_features
             ]
 
-            if any(
-                len(values) == 0
-                for values in value_lists
-            ):
+            if any(len(values) == 0 for values in value_lists):
                 continue
 
             bucket = []
-
-            for candidate_values in itertools.product(
-                *value_lists
-            ):
-
+            for candidate_values in itertools.product(*value_lists):
                 changes = {}
                 valid = True
 
@@ -3151,73 +2967,105 @@ def generate_multi_feature_candidates(
                     selected_features,
                     candidate_values
                 ):
+                    original = patient.get(feature)
 
-                    original = patient.get(
-                        feature
-                    )
-
-                    # Never include unchanged features.
-                    if values_equal(
-                        original,
-                        new_value
-                    ):
+                    if values_equal(original, new_value):
                         valid = False
                         break
 
-                    if not within_domain(
-                        feature,
-                        new_value
-                    ):
+                    if not within_domain(feature, new_value):
                         valid = False
                         break
 
-                    changes[
-                        feature
-                    ] = make_change_details(
+                    changes[feature] = make_change_details(
                         patient,
                         feature,
                         new_value,
                         disease=disease
                     )
 
-                if not valid:
+                if not valid or len(changes) != number_of_changes:
                     continue
 
-                if len(changes) != number_of_changes:
-                    continue
+                direction_scores = [
+                    _candidate_direction_score(
+                        disease,
+                        patient.get(feature),
+                        details.get("new"),
+                        feature,
+                        target_class
+                    )
+                    for feature, details in changes.items()
+                ]
 
-                bucket.append(
-                    changes
+                direction_score = (
+                    float(np.mean(direction_scores))
+                    if direction_scores
+                    else 0.5
                 )
+
+                bucket.append({
+                    "changes": changes,
+                    "direction_score": direction_score,
+                    "distance": candidate_distance(changes),
+                    "plausibility": candidate_plausibility_penalty(
+                        patient,
+                        disease,
+                        changes
+                    )
+                })
 
             if bucket:
-                candidate_buckets.append(
-                    bucket
+                # Search promising directional changes before neutral
+                # changes, then prefer smaller plausible movements.
+                bucket.sort(
+                    key=lambda item: (
+                        -item["direction_score"],
+                        item["plausibility"],
+                        item["distance"]
+                    )
                 )
 
-    # --------------------------------------------------------
-    # Round-robin selection across feature combinations.
-    # This gives later feature pairs a chance to be evaluated
-    # before MAX_TOTAL_CANDIDATES is reached.
-    # --------------------------------------------------------
-    candidates = []
+                pair_priority = sum(
+                    feature_priority(disease, feature)
+                    for feature in selected_features
+                )
 
+                bucket_score = max(
+                    item["direction_score"]
+                    for item in bucket
+                )
+
+                candidate_buckets.append({
+                    "features": selected_features,
+                    "priority": pair_priority,
+                    "score": bucket_score,
+                    "items": bucket
+                })
+
+    # Search the most plausible feature combinations first while
+    # retaining round-robin coverage among similarly useful buckets.
+    candidate_buckets.sort(
+        key=lambda item: (
+            -item["score"],
+            item["priority"],
+            len(item["features"])
+        )
+    )
+
+    candidates = []
     bucket_index = 0
 
-    while (
-        len(candidates) < max_candidates
-        and candidate_buckets
-    ):
-
+    while len(candidates) < max_candidates and candidate_buckets:
         active_buckets = 0
 
         for bucket in candidate_buckets:
+            items = bucket["items"]
 
-            if bucket_index < len(bucket):
+            if bucket_index < len(items):
                 candidates.append(
-                    bucket[bucket_index]
+                    items[bucket_index]["changes"]
                 )
-
                 active_buckets += 1
 
                 if len(candidates) >= max_candidates:
@@ -3229,6 +3077,7 @@ def generate_multi_feature_candidates(
         bucket_index += 1
 
     return candidates
+
 def candidate_distance(
     changes
 ):
@@ -3838,7 +3687,8 @@ def find_counterfactuals(
                 patient_dict,
                 disease,
                 max_features_changed=max_features_changed,
-                max_candidates=MAX_TOTAL_CANDIDATES
+                max_candidates=MAX_TOTAL_CANDIDATES,
+                target_class=(1 if original_prediction == 0 else 0)
             )
         )
 
