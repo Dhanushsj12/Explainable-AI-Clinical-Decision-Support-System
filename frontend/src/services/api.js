@@ -1,7 +1,20 @@
 import axios from "axios";
 
+const getBaseURL = () => {
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+    if (typeof window !== "undefined") {
+        const host = window.location.hostname;
+        if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0") {
+            return "http://localhost:5000";
+        }
+    }
+    return "https://explainable-ai-clinical-decision-support-l3xi.onrender.com";
+};
+
 const API = axios.create({
-    baseURL: "https://explainable-ai-clinical-decision-support-l3xi.onrender.com",
+    baseURL: getBaseURL(),
     timeout: 120000
 });
 

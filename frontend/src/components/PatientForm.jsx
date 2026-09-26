@@ -1946,7 +1946,7 @@ function PatientForm() {
                     DISEASE TABS
                 ================================================= */}
 
-                <div className="disease-tabs">
+                <div className="tabs disease-tabs">
 
                     {diseaseTabs.map(
                         (tab) => {
@@ -1966,7 +1966,7 @@ function PatientForm() {
                                     type="button"
 
                                     className={
-                                        `disease-tab ${
+                                        `tab disease-tab ${
                                             disease ===
                                             tab.value
                                                 ? "active"
@@ -2464,44 +2464,40 @@ function PatientForm() {
             ==================================================== */}
 
             <FeatureImportance
-
-                features={
-                    result?.top_features
-                }
-
-                limeFeatures={
-                    result?.lime_features
-                }
-
-
+                features={result?.top_features}
+                limeFeatures={result?.lime_features}
                 agreement={
-
                     result?.agreement ||
-
                     result?.shap_lime_agreement ||
-
                     result?.explanation_agreement ||
-
                     null
-
                 }
-
-
                 counterfactuals={
-
                     result?.counterfactuals ||
-
                     result?.counterfactual_explanations ||
-
                     []
-
                 }
-
-
-                disease={
-                    disease
+                singleCounterfactuals={
+                    result?.single_counterfactuals || []
                 }
-
+                multiCounterfactuals={
+                    result?.multi_counterfactuals || []
+                }
+                originalProbability={
+                    result?.probability ??
+                    result?.prediction_probability ??
+                    null
+                }
+                originalPrediction={
+                    result?.prediction_text ??
+                    result?.prediction_label ??
+                    result?.prediction ??
+                    null
+                }
+                counterfactualNovelty={
+                    result?.counterfactual_novelty || {}
+                }
+                disease={disease}
             />
 
 

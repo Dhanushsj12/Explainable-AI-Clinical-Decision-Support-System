@@ -2107,41 +2107,46 @@ def calculate_counterfactuals(
     original_probability,
     max_results=5
 ):
+    try:
+        from counterfactual_engine import generate_counterfactual_suite
+        suite = generate_counterfactual_suite(features, disease)
+        cfs = suite.get("counterfactuals", [])
+        return {
+            "original_prediction": suite.get("original_prediction", original_prediction),
+            "original_probability": suite.get("original_probability", original_probability),
+            "target_prediction": suite.get("target_prediction", 0),
+            "target_text": suite.get("target_text", "Low Risk / Healthy"),
+            "counterfactuals": cfs[:max_results] if cfs else [],
+            "single_counterfactuals": suite.get("single_counterfactuals", []),
+            "multi_counterfactuals": suite.get("multi_counterfactuals", []),
+            "total_counterfactuals": suite.get("total_counterfactuals", len(cfs)),
+            "novelty_metadata": suite.get("novelty_metadata", {})
+        }
+    except Exception as error:
+        print("Counterfactual suite execution error, trying legacy fallback:", repr(error))
 
     # -----------------------------------------------------
-    # Heart uses the existing dedicated implementation.
+    # Legacy fallback path
     # -----------------------------------------------------
-
     if disease == "heart":
-
         raw = run_heart_counterfactual(
             features,
             max_results=max_results
         )
-
         normalized = normalize_counterfactuals(
             raw,
             disease
         )
-
         if normalized:
-
+            single = [c for c in normalized if c.get("number_of_changes", 0) == 1]
+            multi = [c for c in normalized if c.get("number_of_changes", 0) > 1]
             return {
-
-                "original_prediction":
-                    original_prediction,
-
-                "original_probability":
-                    original_probability,
-
-                "counterfactuals":
-                    normalized
-
+                "original_prediction": original_prediction,
+                "original_probability": original_probability,
+                "counterfactuals": normalized,
+                "single_counterfactuals": single,
+                "multi_counterfactuals": multi
             }
-
-    # -----------------------------------------------------
-    # Diabetes / CKD / Stroke use generic bounded search.
-    # -----------------------------------------------------
 
     generic = generic_counterfactual_search(
         features,
@@ -2151,16 +2156,11 @@ def calculate_counterfactuals(
     )
 
     return {
-
-        "original_prediction":
-            original_prediction,
-
-        "original_probability":
-            original_probability,
-
-        "counterfactuals":
-            generic
-
+        "original_prediction": original_prediction,
+        "original_probability": original_probability,
+        "counterfactuals": generic,
+        "single_counterfactuals": [c for c in generic if c.get("number_of_changes", 0) == 1],
+        "multi_counterfactuals": [c for c in generic if c.get("number_of_changes", 0) > 1]
     }
 
 
@@ -2682,6 +2682,34 @@ def run_assessment(
     ] = counterfactuals
 
     result[
+        "single_counterfactuals"
+    ] = cf_result.get(
+        "single_counterfactuals",
+        []
+    )
+
+    result[
+        "multi_counterfactuals"
+    ] = cf_result.get(
+        "multi_counterfactuals",
+        []
+    )
+
+    result[
+        "counterfactual_target_text"
+    ] = cf_result.get(
+        "target_text",
+        "Low Risk / Healthy"
+    )
+
+    result[
+        "counterfactual_novelty"
+    ] = cf_result.get(
+        "novelty_metadata",
+        {}
+    )
+
+    result[
         "counterfactual_original_prediction"
     ] = cf_result.get(
         "original_prediction"
@@ -3138,6 +3166,11 @@ def report():
             generated_result[
                 "counterfactual_explanations"
             ] = normalized_cf
+
+            if "single_counterfactuals" in data:
+                generated_result["single_counterfactuals"] = data["single_counterfactuals"]
+            if "multi_counterfactuals" in data:
+                generated_result["multi_counterfactuals"] = data["multi_counterfactuals"]
 
         # -------------------------------------------------
         # Report directory.

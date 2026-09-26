@@ -9,7 +9,8 @@ function Signup() {
     const [form, setForm] = useState({
         name: "",
         email: "",
-        password: ""
+        password: "",
+        role: "doctor"
     });
 
     const [message, setMessage] = useState("");
@@ -95,11 +96,33 @@ function Signup() {
                     <input
                         name="password"
                         type="password"
-                        placeholder="Password"
+                        placeholder="Password (min 6 characters)"
                         value={form.password}
                         onChange={handleChange}
                         required
                     />
+
+                    <select
+                        name="role"
+                        value={form.role}
+                        onChange={handleChange}
+                        className="auth-select"
+                        style={{
+                            width: "100%",
+                            height: "44px",
+                            padding: "0 12px",
+                            marginBottom: "16px",
+                            border: "1px solid #cbd5e1",
+                            borderRadius: "6px",
+                            fontSize: "14px",
+                            background: "#ffffff",
+                            color: "#0f172a",
+                            fontWeight: 600
+                        }}
+                    >
+                        <option value="doctor">Medical Doctor (Full Assessment & Patient History)</option>
+                        <option value="staff">Clinical Staff (Diagnostics & Triage)</option>
+                    </select>
 
                     <button type="submit">
                         Create Account

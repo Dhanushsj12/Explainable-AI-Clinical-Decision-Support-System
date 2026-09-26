@@ -520,7 +520,7 @@ def evaluate_patient(row: pd.Series, disease: str) -> dict[str, Any]:
             features,
             disease=disease,
             max_results=MAX_CF_RESULTS,
-            max_features_changed=3,
+            max_features_changed=2,
         )
         cfs = cfs if isinstance(cfs, list) else []
         record["cf_ok"] = True

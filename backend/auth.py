@@ -94,9 +94,11 @@ def signup():
 
     password_hash = generate_password_hash(password)
 
-    # New accounts are always created as staff.
-    # Admin can later change the role to doctor.
-    role = "staff"
+    # Allow selecting doctor or staff on signup (protect admin from direct signup)
+    requested_role = data.get("role", "doctor").strip().lower()
+    if requested_role not in ["doctor", "staff"]:
+        requested_role = "doctor"
+    role = requested_role
 
     try:
 

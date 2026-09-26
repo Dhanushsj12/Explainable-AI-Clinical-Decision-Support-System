@@ -28,8 +28,63 @@ def get_connection():
 
 
 # =========================================================
-# INITIALIZE AUTH DATABASE
+# INITIALIZE AUTH DATABASE & SEED DEFAULT USERS
 # =========================================================
+
+def seed_default_users():
+    default_users = [
+        {
+            "name": "System Administrator",
+            "email": "admin@hospital.com",
+            "password": "Admin@123",
+            "role": "admin"
+        },
+        {
+            "name": "Dr. Dhanush (Lead Cardiologist)",
+            "email": "doctor@hospital.com",
+            "password": "Doctor@123",
+            "role": "doctor"
+        },
+        {
+            "name": "Clinical Staff Member",
+            "email": "staff@hospital.com",
+            "password": "Staff@123",
+            "role": "staff"
+        }
+    ]
+
+    connection = get_connection()
+    for user_info in default_users:
+        existing = connection.execute(
+            "SELECT id, role FROM users WHERE email = ?",
+            (user_info["email"],)
+        ).fetchone()
+
+        pwd_hash = generate_password_hash(user_info["password"])
+
+        if not existing:
+            connection.execute(
+                """
+                INSERT INTO users (name, email, password_hash, role)
+                VALUES (?, ?, ?, ?)
+                """,
+                (user_info["name"], user_info["email"], pwd_hash, user_info["role"])
+            )
+            print(f"Created default {user_info['role']} account: {user_info['email']}")
+        else:
+            # Keep credentials active and correct
+            connection.execute(
+                """
+                UPDATE users
+                SET password_hash = ?, role = ?
+                WHERE email = ?
+                """,
+                (pwd_hash, user_info["role"], user_info["email"])
+            )
+
+    connection.commit()
+    connection.close()
+
 
 def initialize_auth_database():
 
@@ -49,6 +104,9 @@ def initialize_auth_database():
     connection.commit()
 
     connection.close()
+
+    # Pre-seed the 3 guaranteed accounts (Admin, Doctor, Staff)
+    seed_default_users()
 
 
 # =========================================================
