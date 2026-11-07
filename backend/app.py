@@ -18,6 +18,7 @@ from report_generator import generate_report
 from shap_lime_agreement import (
     calculate_shap_lime_agreement
 )
+from attribution_recourse_alignment import calculate_ara
 
 from database import (
     create_table,
@@ -2508,6 +2509,11 @@ def run_assessment(
         prediction_result
     )
 
+    # The frontend uses this immutable snapshot when exporting a PDF. It
+    # prevents the report from mixing a previous assessment with edited form
+    # values or stale counterfactuals.
+    result["input_features"] = copy.deepcopy(features)
+
     prediction_class = extract_prediction(
         result
     )
@@ -2707,6 +2713,15 @@ def run_assessment(
     ] = cf_result.get(
         "novelty_metadata",
         {}
+    )
+
+    # ARA compares explanatory evidence with features used in hypothetical
+    # recourse. It is reported separately from CECI and is not clinical proof.
+    result["ara"] = calculate_ara(
+        explanation,
+        lime,
+        counterfactuals,
+        top_k=5
     )
 
     result[
@@ -3152,7 +3167,11 @@ def report():
             []
         )
 
-        if supplied_counterfactuals:
+        # Recompute explanations from the frozen feature snapshot above. Do
+        # not overwrite generated counterfactual objects with browser copies:
+        # old browser payloads omit `type` and `flips_prediction`, which can
+        # turn a sensitivity result into a false class-changing claim in PDF.
+        if False and supplied_counterfactuals:
 
             normalized_cf = normalize_counterfactuals(
                 supplied_counterfactuals,

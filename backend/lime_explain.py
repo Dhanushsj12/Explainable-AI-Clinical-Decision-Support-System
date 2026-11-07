@@ -601,12 +601,7 @@ def lime_explain(
         patient = np.array(
             features
         ).reshape(1, -1)
-
-        patient_scaled = (
-            ckd_scaler.transform(
-                patient
-            )
-        )
+        patient_scaled = ckd_scaler.transform(patient)
 
         explanation = (
             ckd_explainer.explain_instance(

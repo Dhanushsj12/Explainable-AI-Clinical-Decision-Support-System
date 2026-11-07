@@ -1,0 +1,43 @@
+{
+  "validation_accuracy": 0.9016,
+  "validation_roc_auc": 0.96,
+  "training_rows": 303,
+  "bp_curve": [
+    {
+      "bp": 100,
+      "probability": 0.085513
+    },
+    {
+      "bp": 110,
+      "probability": 0.096214
+    },
+    {
+      "bp": 120,
+      "probability": 0.096214
+    },
+    {
+      "bp": 130,
+      "probability": 0.096214
+    },
+    {
+      "bp": 140,
+      "probability": 0.098635
+    },
+    {
+      "bp": 150,
+      "probability": 0.15011
+    },
+    {
+      "bp": 160,
+      "probability": 0.218915
+    },
+    {
+      "bp": 170,
+      "probability": 0.218915
+    },
+    {
+      "bp": 180,
+      "probability": 0.218915
+    }
+  ]
+}

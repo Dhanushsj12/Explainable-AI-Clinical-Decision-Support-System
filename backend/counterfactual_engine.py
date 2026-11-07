@@ -434,7 +434,9 @@ def eval_patient_state(p_dict, disease):
     res = predict(inp, disease)
     pred = int(res["prediction_class"])
     raw_prob = float(res["probability"])
-    prob = raw_prob / 100.0 if raw_prob > 1.0 else raw_prob
+    # All prediction functions return a percentage (0 to 100). A value such
+    # as 0.79 means 0.79%, not 79%; always convert it to a probability.
+    prob = raw_prob / 100.0
     return pred, prob
 
 def format_clinical_delta(old_val, new_val, unit):
@@ -698,3 +700,185 @@ def normalize_counterfactuals(counterfactuals, disease):
     if isinstance(counterfactuals, list):
         return counterfactuals
     return []
+
+
+# ---------------------------------------------------------------------------
+# Direction-aware counterfactual implementation.
+#
+# The older implementation selected every class-flipping candidate as if a
+# lower positive-class probability were always desirable. That is wrong for a
+# low-risk patient, where a counterfactual is a risk-increasing sensitivity
+# scenario, and it allowed risk-increasing recommendations for high-risk
+# patients. This replacement evaluates every candidate with the production
+# prediction function and keeps only candidates whose probability moves in the
+# requested direction.
+# ---------------------------------------------------------------------------
+
+RISK_TEST_VALUES = {
+    "heart": {
+        "trestbps": [140, 160, 180], "chol": [240, 280, 320],
+        "thalach": [125, 105, 90], "oldpeak": [1.5, 2.5, 3.5],
+        "cp": [2, 3], "exang": [1], "slope": [2], "ca": [1, 2, 3],
+        "thal": [3], "fbs": [1], "restecg": [1, 2],
+    },
+    "diabetes": {name: [1] for name in DIABETES_FEATURES if name not in {"age", "gender"}},
+    "ckd": {
+        "al": [2, 3, 4], "sc": [2.0, 3.0, 4.0], "hemo": [11.0, 9.0],
+        "pcv": [35.0, 28.0], "sg": [1.010, 1.005], "bgr": [160.0, 220.0],
+        "bu": [50.0, 80.0], "bp": [90.0, 110.0], "rbcc": [4.0, 3.2],
+        "htn": [1], "dm": [1], "sod": [130.0, 148.0], "pot": [5.5, 6.2],
+        "pe": [1], "ane": [1],
+    },
+    "stroke": {
+        "avg_glucose_level": [160.0, 210.0, 260.0], "bmi": [30.0, 35.0, 40.0],
+        "hypertension": [1], "heart_disease": [1], "smoking_status": ["smokes"],
+    },
+}
+
+
+def _counterfactual_prediction_text(disease, prediction):
+    if prediction == 1:
+        return "Disease Risk Present"
+    return "Low Risk / Healthy"
+
+
+def _candidate_values(disease, feature, original_prediction):
+    if original_prediction == 1:
+        return CLINICAL_METRICS[disease][feature]["healthy"]
+    return RISK_TEST_VALUES.get(disease, {}).get(feature, [])
+
+
+def _make_directional_record(disease, original, original_prediction, original_probability, changes):
+    candidate = dict(original)
+    candidate.update({feature: new_value for feature, new_value in changes.items()})
+    candidate_prediction, candidate_probability = eval_patient_state(candidate, disease)
+    probability_delta = candidate_probability - original_probability
+    wants_risk_reduction = original_prediction == 1
+    direction_is_valid = probability_delta < -1e-9 if wants_risk_reduction else probability_delta > 1e-9
+    if not direction_is_valid:
+        return None
+
+    target_prediction = 0 if wants_risk_reduction else 1
+    details = []
+    for feature, new_value in changes.items():
+        meta = CLINICAL_METRICS[disease][feature]
+        old_value = original[feature]
+        details.append({
+            "feature": feature,
+            "feature_name": meta["name"],
+            "label": meta["name"],
+            "old_value": old_value,
+            "new_value": new_value,
+            "difference": round(float(new_value) - float(old_value), 3) if isinstance(new_value, (int, float, np.number)) and isinstance(old_value, (int, float, np.number)) else None,
+            "delta_str": format_clinical_delta(old_value, new_value, meta["unit"]),
+            "unit": meta["unit"],
+            "direction": meta["direction"],
+            "clinical_action": meta["action"],
+        })
+
+    flips_prediction = candidate_prediction == target_prediction
+    # A low-risk patient's intentionally risk-increasing inputs are sensitivity
+    # tests, even when they cross the classifier boundary. They are never
+    # presented as clinical interventions or recommendations.
+    is_sensitivity = original_prediction == 0 or not flips_prediction
+    probability_change = round(probability_delta * 100, 2)
+    return {
+        "type": "sensitivity" if is_sensitivity else "counterfactual",
+        "tier": "Clinical risk-reduction counterfactual" if not is_sensitivity else "Risk-increasing model sensitivity scenario (not clinical advice)",
+        "number_of_changes": len(changes),
+        "num_changes": len(changes),
+        "prediction": candidate_prediction,
+        "prediction_text": _counterfactual_prediction_text(disease, candidate_prediction),
+        "probability": round(candidate_probability * 100, 2),
+        "original_probability": round(original_probability * 100, 2),
+        "probability_change": probability_change,
+        "probability_reduction": round(max(0.0, -probability_delta * 100), 2),
+        "probability_increase": round(max(0.0, probability_delta * 100), 2),
+        "changes": {feature: [original[feature], value] for feature, value in changes.items()},
+        "feature_changes": details,
+        "detailed_changes": details,
+        "flips_prediction": flips_prediction,
+        "normalized_change": float(len(changes)),
+        "clinical_rationale": "; ".join(item["clinical_action"] for item in details) if not is_sensitivity else "Hypothetical model sensitivity scenario only. It is not a clinical recommendation.",
+        "note": "Risk-increasing scenario for model sensitivity only; do not interpret it as clinical advice." if original_prediction == 0 else (None if flips_prediction else "This reduces risk but does not cross the deployed model's decision threshold."),
+    }
+
+
+def generate_counterfactual_suite(features, disease, max_single=3, max_multi=5):
+    """Return verified, directionally correct counterfactuals for one patient."""
+    disease = normalize_disease_name(disease)
+    original = to_feature_dict(features, disease)
+    original_prediction, original_probability = eval_patient_state(original, disease)
+    target_prediction = 0 if original_prediction == 1 else 1
+    mutable = [
+        feature for feature in CLINICAL_METRICS.get(disease, {})
+        if feature not in IMMUTABLE_FEATURES.get(disease, set()) and feature in original
+    ]
+
+    single_candidates = []
+    for feature in mutable:
+        for value in _candidate_values(disease, feature, original_prediction):
+            if str(value) == str(original.get(feature)):
+                continue
+            record = _make_directional_record(
+                disease, original, original_prediction, original_probability, {feature: value}
+            )
+            if record is not None:
+                single_candidates.append(record)
+
+    multi_candidates = []
+    # Use the first clinically meaningful change for each feature. The search is
+    # bounded while still covering all two-feature combinations.
+    for first, second in itertools.combinations(mutable, 2):
+        first_values = _candidate_values(disease, first, original_prediction)
+        second_values = _candidate_values(disease, second, original_prediction)
+        if not first_values or not second_values:
+            continue
+        for first_value, second_value in itertools.product(first_values[:2], second_values[:2]):
+            if str(first_value) == str(original.get(first)) or str(second_value) == str(original.get(second)):
+                continue
+            record = _make_directional_record(
+                disease,
+                original,
+                original_prediction,
+                original_probability,
+                {first: first_value, second: second_value},
+            )
+            if record is not None:
+                multi_candidates.append(record)
+
+    wants_risk_reduction = original_prediction == 1
+    probability_key = (lambda item: item["probability"]) if wants_risk_reduction else (lambda item: -item["probability"])
+    single_flips = [item for item in single_candidates if item["flips_prediction"]]
+    multi_flips = [item for item in multi_candidates if item["flips_prediction"]]
+    single_sensitivity = [item for item in single_candidates if not item["flips_prediction"]]
+    multi_sensitivity = [item for item in multi_candidates if not item["flips_prediction"]]
+    single_flips.sort(key=probability_key)
+    multi_flips.sort(key=probability_key)
+    single_sensitivity.sort(key=probability_key)
+    multi_sensitivity.sort(key=probability_key)
+
+    # A genuine counterfactual changes class. When no actionable change can
+    # cross the model threshold, expose a clearly labelled sensitivity result
+    # rather than falsely calling it a class-flipping counterfactual.
+    selected_single = (single_flips or single_sensitivity)[:max_single]
+    selected_multi = (multi_flips or multi_sensitivity)[:max_multi]
+    combined = selected_single + selected_multi
+    return {
+        "disease": disease,
+        "original_prediction": original_prediction,
+        "original_probability": round(original_probability * 100, 2),
+        "target_prediction": target_prediction,
+        "target_text": _counterfactual_prediction_text(disease, target_prediction),
+        "single_counterfactuals": selected_single,
+        "multi_counterfactuals": selected_multi,
+        "counterfactuals": combined,
+        "total_counterfactuals": len(combined),
+        "genuine_counterfactual_count": len(single_flips) + len(multi_flips),
+        "novelty_metadata": {
+            "engine": "Direction-aware clinically constrained counterfactual engine",
+            "immutable_guardrails_enforced": sorted(IMMUTABLE_FEATURES.get(disease, set())),
+            "medical_plausibility_enforced": True,
+            "uses_production_decision_threshold": True,
+        },
+    }

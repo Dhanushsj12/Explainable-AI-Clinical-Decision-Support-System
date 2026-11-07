@@ -1389,8 +1389,8 @@ function AgreementSection({
                     <div>
 
                         <div className="panel-title" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                            <span>Explanation Reliability & Consistency Index (ERI)</span>
-                            <span className="eri-novelty-badge">Consensus Metric</span>
+                            <span>Cross-Explainer Concordance Index (CECI)</span>
+                            <span className="eri-novelty-badge">Novelty Metric</span>
                         </div>
 
                         <div className="panel-title-sub">
@@ -1413,7 +1413,7 @@ function AgreementSection({
                             </span>
                         </div>
                         <div className="eri-novelty-title">
-                            Multi-XAI Triangulation Metric
+                            SHAP-LIME Concordance Audit
                         </div>
                         <p className="eri-novelty-desc">
                             Resolves the black-box disagreement dilemma in clinical CDSS by quantifying cross-attribution stability between game-theoretic (SHAP) and local perturbation (LIME) models. High consistency indicates mathematically corroborated biomarker importance.
@@ -1435,7 +1435,7 @@ function AgreementSection({
 
                         <div className="metric-tile">
                             <div className="metric-tile-label">
-                                Overall ERI Score
+                                Overall CECI Score
                             </div>
                             <div className="metric-tile-value" style={{ color: "var(--cyan2, #0284c7)" }}>
                                 {formatAgreementMetric(data.score)}
@@ -1718,6 +1718,32 @@ function AgreementSection({
    COUNTERFACTUAL HELPERS
 ============================================================ */
 
+function AraSection({ ara }) {
+    if (!ara || typeof ara !== "object") return null;
+    const score = Number(ara.mean_alignment_percentage);
+    return (
+        <div className="wrap mt-24">
+            <div className="panel">
+                <div className="panel-header">
+                    <div className="icon-badge"><IconLayers size={17} /></div>
+                    <div>
+                        <div className="panel-title">Attribution-to-Recourse Alignment (ARA)</div>
+                        <div className="panel-title-sub">Overlap between top explanatory features and hypothetical recourse features</div>
+                    </div>
+                </div>
+                <div className="panel-body">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "1px", background: "var(--line, #dbe4ee)", border: "1px solid var(--line, #dbe4ee)" }}>
+                        <div className="metric-tile"><div className="metric-tile-label">Mean ARA</div><div className="metric-tile-value">{Number.isFinite(score) ? `${score.toFixed(2)}%` : "-"}</div></div>
+                        <div className="metric-tile"><div className="metric-tile-label">SHAP Alignment</div><div className="metric-tile-value">{Number(ara.shap_alignment_percentage || 0).toFixed(2)}%</div></div>
+                        <div className="metric-tile"><div className="metric-tile-label">LIME Alignment</div><div className="metric-tile-value">{Number(ara.lime_alignment_percentage || 0).toFixed(2)}%</div></div>
+                    </div>
+                    <div className="clinical-note" style={{ marginTop: "18px" }}>{ara.note}</div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 /* ============================================================
    COUNTERFACTUAL HELPERS & NORMALIZATION
 ============================================================ */
@@ -1934,12 +1960,16 @@ function CounterfactualSection({
                                 const prediction = getCounterfactualPrediction(cf);
                                 const isSingle = (cf.type === "single" || cf.number_of_changes === 1 || cf.sparsity === 1 || changes.length === 1);
                                 const sparsity = cf.number_of_changes || cf.sparsity || changes.length;
-
-                                // Risk Reduction Calculation
-                                let riskReduction = cf.risk_reduction_pct;
-                                if ((riskReduction === undefined || riskReduction === null) && baselineProbPct !== null && newProb !== null) {
-                                    riskReduction = Math.max(0, ((baselineProbPct - newProb) / baselineProbPct) * 100).toFixed(1);
-                                }
+                                const sensitivityOnly =
+                                    cf.type === "sensitivity" ||
+                                    cf.flips_prediction === false ||
+                                    (baselineProbPct !== null && newProb !== null && newProb > baselineProbPct && newProb < 50);
+                                const probabilityChange = Number(
+                                    cf.probability_change ??
+                                    (baselineProbPct !== null && newProb !== null ? newProb - baselineProbPct : 0)
+                                );
+                                const riskDecreases = probabilityChange < 0;
+                                const changeText = `${riskDecreases ? "▼" : "▲"} ${Math.abs(probabilityChange).toFixed(2)}% ${riskDecreases ? "Risk Reduction" : "Risk Increase"}`;
 
                                 return (
                                     <div key={index} className="cf-card">
@@ -1960,14 +1990,14 @@ function CounterfactualSection({
                                                     </span>
                                                 )}
 
-                                                <span className="badge badge-low" style={{ fontSize: "10px", fontWeight: 700 }}>
-                                                    ✓ Clinically Actionable
+                                                <span className={sensitivityOnly ? "badge badge-mod" : "badge badge-low"} style={{ fontSize: "10px", fontWeight: 700 }}>
+                                                    {sensitivityOnly ? "Sensitivity Only" : "✓ Clinically Actionable"}
                                                 </span>
                                             </div>
 
-                                            {riskReduction !== undefined && riskReduction !== null && (
+                                            {Number.isFinite(probabilityChange) && (
                                                 <span className="cf-badge-risk-drop">
-                                                    ▼ -{riskReduction}% Risk Drop
+                                                    {changeText}
                                                 </span>
                                             )}
                                         </div>
@@ -1985,7 +2015,7 @@ function CounterfactualSection({
                                             }}
                                         >
                                             <div className="metric-tile" style={{ padding: "10px 14px" }}>
-                                                <div className="metric-tile-label">Target State</div>
+                                                <div className="metric-tile-label">{sensitivityOnly ? "Scenario State" : "Target State"}</div>
                                                 <div className="metric-tile-value" style={{ fontSize: "15px", fontWeight: 700, color: "var(--lime, #238b59)" }}>
                                                     {prediction}
                                                 </div>
@@ -2134,6 +2164,7 @@ function FeatureImportance({
     originalProbability,
     originalPrediction,
     counterfactualNovelty,
+    ara,
     disease = "heart"
 }) {
     const hasShap =
@@ -2248,6 +2279,8 @@ function FeatureImportance({
                     />
                 )
             }
+
+            <AraSection ara={ara} />
         </>
     );
 }

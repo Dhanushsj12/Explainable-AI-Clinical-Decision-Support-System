@@ -1,0 +1,99 @@
+[
+  {
+    "case": "CKD Low Risk",
+    "disease": "ckd",
+    "prediction": "No CKD",
+    "prediction_class": 0,
+    "probability_percentage": 10.0,
+    "shap_alignment_percentage": 0.0,
+    "lime_alignment_percentage": 66.67,
+    "mean_alignment_percentage": 33.33,
+    "random_baseline_percentage": 20.83,
+    "recourse_features": [
+      "al",
+      "dm",
+      "sg"
+    ],
+    "shap_shared_features": [],
+    "lime_shared_features": [
+      "dm",
+      "sg"
+    ],
+    "scenario_count": 5
+  },
+  {
+    "case": "CKD High Risk",
+    "disease": "ckd",
+    "prediction": "Chronic Kidney Disease",
+    "prediction_class": 1,
+    "probability_percentage": 100.0,
+    "shap_alignment_percentage": 100.0,
+    "lime_alignment_percentage": 50.0,
+    "mean_alignment_percentage": 75.0,
+    "random_baseline_percentage": 20.46,
+    "recourse_features": [
+      "al",
+      "hemo",
+      "pcv",
+      "sc"
+    ],
+    "shap_shared_features": [
+      "al",
+      "hemo",
+      "pcv",
+      "sc"
+    ],
+    "lime_shared_features": [
+      "hemo",
+      "sc"
+    ],
+    "scenario_count": 5
+  },
+  {
+    "case": "Stroke Low Risk",
+    "disease": "stroke",
+    "prediction": "No Stroke",
+    "prediction_class": 0,
+    "probability_percentage": 10.85,
+    "shap_alignment_percentage": 33.33,
+    "lime_alignment_percentage": 33.33,
+    "mean_alignment_percentage": 33.33,
+    "random_baseline_percentage": 50.04,
+    "recourse_features": [
+      "avg glucose level",
+      "hypertension",
+      "smoking status"
+    ],
+    "shap_shared_features": [
+      "hypertension"
+    ],
+    "lime_shared_features": [
+      "hypertension"
+    ],
+    "scenario_count": 5
+  },
+  {
+    "case": "Stroke High Risk",
+    "disease": "stroke",
+    "prediction": "Stroke",
+    "prediction_class": 1,
+    "probability_percentage": 89.42,
+    "shap_alignment_percentage": 33.33,
+    "lime_alignment_percentage": 66.67,
+    "mean_alignment_percentage": 50.0,
+    "random_baseline_percentage": 50.14,
+    "recourse_features": [
+      "avg glucose level",
+      "bmi",
+      "hypertension"
+    ],
+    "shap_shared_features": [
+      "hypertension"
+    ],
+    "lime_shared_features": [
+      "avg glucose level",
+      "hypertension"
+    ],
+    "scenario_count": 5
+  }
+]

@@ -586,17 +586,15 @@ def explain(features, disease="heart"):
     elif disease == "ckd":
 
         patient_df = pd.DataFrame(
-            [features],
-            columns=ckd_feature_names
-        )
+    [features],
+    columns=ckd_feature_names
+)
 
-        patient_scaled = ckd_scaler.transform(
-            patient_df
-        )
+        patient_scaled = ckd_scaler.transform(patient_df)
 
         shap_values = ckd_explainer(
-            patient_scaled
-        )
+        patient_scaled
+)
 
         values = shap_values.values[0]
 

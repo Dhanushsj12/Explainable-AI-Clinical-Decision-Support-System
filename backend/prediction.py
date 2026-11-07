@@ -195,10 +195,6 @@ def predict_diabetes(patient_data):
         patient_data
     ).reshape(1, -1)
 
-    # --------------------------------------------------------
-    # Scale
-    # --------------------------------------------------------
-
     patient_scaled = diabetes_scaler.transform(
         patient
     )
@@ -259,14 +255,7 @@ def predict_ckd(patient_data):
         [patient_data],
         columns=CKD_FEATURES
     )
-
-    # --------------------------------------------------------
-    # Scale
-    # --------------------------------------------------------
-
-    patient_scaled = ckd_scaler.transform(
-        patient
-    )
+    patient_scaled = ckd_scaler.transform(patient)
 
     # --------------------------------------------------------
     # Prediction

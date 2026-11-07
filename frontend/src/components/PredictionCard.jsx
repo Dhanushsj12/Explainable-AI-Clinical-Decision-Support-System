@@ -746,6 +746,13 @@ function CounterfactualCard({
         cf.normalizedChange ??
         null;
 
+    const flipsPrediction =
+        cf.flips_prediction === true;
+
+    const sensitivityOnly =
+        cf.type === "sensitivity" ||
+        !flipsPrediction;
+
 
     const predictionLower =
         String(
@@ -816,7 +823,11 @@ function CounterfactualCard({
 
                     <div className="panel-title">
 
-                        Counterfactual #{index + 1}
+                        {
+                            sensitivityOnly
+                                ? `Risk Sensitivity Scenario #${index + 1}`
+                                : `Counterfactual #${index + 1}`
+                        }
 
                     </div>
 
@@ -825,7 +836,11 @@ function CounterfactualCard({
                         className="panel-title-sub"
                     >
 
-                        Alternative {getDiseaseName(disease)} profile
+                        {
+                            sensitivityOnly
+                                ? "Risk changes without crossing the decision threshold"
+                                : `Alternative ${getDiseaseName(disease)} profile`
+                        }
 
                     </div>
 
@@ -840,17 +855,34 @@ function CounterfactualCard({
 
                     <span
                         className={
-                            positive
+                            !flipsPrediction
+                                ? "badge badge-neutral"
+                                : positive
                                 ? "badge badge-high"
                                 : "badge badge-low"
                         }
                     >
 
-                        Prediction Changed
+                        {
+                            flipsPrediction
+                                ? "Prediction Changed"
+                                : "Sensitivity Only"
+                        }
 
                     </span>
 
                 </div>
+
+                {
+                    cf.note && (
+                        <div
+                            className="clinical-note"
+                            style={{ marginTop: 14 }}
+                        >
+                            {cf.note}
+                        </div>
+                    )
+                }
 
             </div>
 

@@ -1464,9 +1464,16 @@ function PatientForm() {
             );
 
 
-            setResult(
-                response.data
-            );
+            setResult({
+                ...response.data,
+                input_features: features,
+                patient_snapshot: {
+                    patient_id: formData.patient_id,
+                    patient_name: formData.patient_name,
+                    doctor_name: formData.doctor_name,
+                    hospital_name: formData.hospital_name
+                }
+            });
 
         }
 
@@ -1558,7 +1565,10 @@ function PatientForm() {
     try {
 
         const features =
+            result?.input_features ??
             buildFeatures();
+
+        const patientSnapshot = result?.patient_snapshot || formData;
 
 
         const requestData = {
@@ -1570,16 +1580,16 @@ function PatientForm() {
                 features,
 
             patient_id:
-                formData.patient_id,
+                patientSnapshot.patient_id,
 
             patient_name:
-                formData.patient_name,
+                patientSnapshot.patient_name,
 
             doctor_name:
-                formData.doctor_name,
+                patientSnapshot.doctor_name,
 
             hospital_name:
-                formData.hospital_name,
+                patientSnapshot.hospital_name,
 
             lime_features:
                 result?.lime_features || [],
@@ -2497,6 +2507,7 @@ function PatientForm() {
                 counterfactualNovelty={
                     result?.counterfactual_novelty || {}
                 }
+                ara={result?.ara || null}
                 disease={disease}
             />
 

@@ -1,0 +1,38 @@
+CKD and Stroke ARA Results
+============================================================
+
+Case: CKD Low Risk
+Prediction: No CKD (10.0%)
+SHAP ARA: 0.0%
+LIME ARA: 66.67%
+Mean ARA: 33.33%
+Random baseline: 20.83%
+Recourse features: al, dm, sg
+Scenarios evaluated: 5
+
+Case: CKD High Risk
+Prediction: Chronic Kidney Disease (100.0%)
+SHAP ARA: 100.0%
+LIME ARA: 50.0%
+Mean ARA: 75.0%
+Random baseline: 20.46%
+Recourse features: al, hemo, pcv, sc
+Scenarios evaluated: 5
+
+Case: Stroke Low Risk
+Prediction: No Stroke (10.85%)
+SHAP ARA: 33.33%
+LIME ARA: 33.33%
+Mean ARA: 33.33%
+Random baseline: 50.04%
+Recourse features: avg glucose level, hypertension, smoking status
+Scenarios evaluated: 5
+
+Case: Stroke High Risk
+Prediction: Stroke (89.42%)
+SHAP ARA: 33.33%
+LIME ARA: 66.67%
+Mean ARA: 50.0%
+Random baseline: 50.14%
+Recourse features: avg glucose level, bmi, hypertension
+Scenarios evaluated: 5
